@@ -29,6 +29,51 @@ def _draw_table(ax):
     ax.plot([0, 0], [-hy, hy], [z, z], color="tab:gray", lw=1.0, alpha=0.6)  # net line at x=0
 
 
+def animate_comparison(seqs, out_path: str, fps: int = 30, titles=None,
+                       elev: int = 12, azim: int = -70, paddle_joint: int = F.LEFT_WRIST):
+    """Render side-by-side 3D skeleton animations to a video (mp4 via ffmpeg, else .gif).
+
+    seqs: list of (T, J, 3) position arrays (e.g. [generated, ground_truth]). All must share T.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib import animation
+
+    seqs = [np.asarray(s) for s in seqs]
+    T = min(s.shape[0] for s in seqs)
+    n = len(seqs)
+    titles = titles or [""] * n
+    fig = plt.figure(figsize=(5 * n, 5))
+    axes = [fig.add_subplot(1, n, i + 1, projection="3d") for i in range(n)]
+
+    def draw(frame):
+        for ax, pos, title in zip(axes, seqs, titles):
+            ax.clear()
+            p = pos[frame]
+            J = p.shape[0]
+            for j in range(1, J):
+                a, b = j, int(F.SMPL_PARENTS[j])
+                ax.plot([p[a, 0], p[b, 0]], [p[a, 1], p[b, 1]], [p[a, 2], p[b, 2]],
+                        color="tab:blue", lw=2.5)
+            ax.scatter(p[paddle_joint, 0], p[paddle_joint, 1], p[paddle_joint, 2],
+                       color="tab:red", s=40)
+            _draw_table(ax)
+            ax.set_xlim(-2.6, 0.6); ax.set_ylim(-1.6, 1.6); ax.set_zlim(0, 2.0)
+            ax.set_box_aspect((1, 1, 0.62)); ax.view_init(elev=elev, azim=azim)
+            ax.set_title(f"{title}  (frame {frame})")
+        return axes
+
+    anim = animation.FuncAnimation(fig, draw, frames=T, interval=1000.0 / fps)
+    if out_path.endswith(".gif") or not animation.writers.is_available("ffmpeg"):
+        out_path = out_path.rsplit(".", 1)[0] + ".gif"
+        anim.save(out_path, writer=animation.PillowWriter(fps=fps))
+    else:
+        anim.save(out_path, writer=animation.FFMpegWriter(fps=fps, bitrate=3000))
+    plt.close(fig)
+    return out_path
+
+
 def plot_positions_montage(positions: np.ndarray, out_path: str, n_frames: int = 6,
                            title: str = "", paddle_joint: int = F.LEFT_WRIST):
     """Montage from precomputed joint positions (T, J, 3) — J may be 22 or 24."""
