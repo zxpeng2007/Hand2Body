@@ -1,0 +1,54 @@
+# Hand2WholeBody default config. See docs/CONTRACT.md for the rationale behind every value.
+
+frame:
+  # World frame is pinned by assets/urdf/table.urdf (origin on floor below table center).
+  fps: 30                      # canonical generation/training rate (Hz)
+  control_fps: 50              # HoloMotion control loop; interpolate 30->50 only at handoff
+
+representation:
+  rot6d_convention: pytorch3d_row   # one of: pytorch3d_row | zhou_column  (CONTRACT §2 ❓)
+  # If the coworker emits the AI4Animation Look(z,y) pair instead, set an input adapter
+  # via h2wb.representations.rotations.look_to_matrix and re-export as pytorch3d_row.
+  paddle_hand_joint: 20        # SMPL left_wrist
+  smpl_num_joints: 24
+  num_betas: 10
+
+hand_signal:
+  dim: 12                      # [pos(3) | lin_vel(3) | rot6d(6)]
+  canonicalize: root_relative_pos   # none | root_relative_pos  (orientation stays global)
+
+window:
+  past_hand: 20                # K: past hand frames fed as conditioning (~0.66 s @30Hz)
+  past_body: 5                 # autoregressive body-state frames
+  predict: 8                   # P: future body frames denoised per step (tunable)
+
+model:
+  arch: diffmlp                # diffmlp (primary) | regressor (fallback-1) | cvae (fallback-2)
+  hidden: 512
+  n_blocks: 12
+  latent: 512
+  # output per frame: 22 body-joint rotations x 6D (132) + root_trans(3) + root_orient_6d(6)
+  out_joint_rot6d: 132
+  diffusion:
+    train_steps: 1000
+    sample_steps: 8            # DDIM at inference; distill to 1-2 if the loop demands
+    schedule: cosine
+
+loss:
+  w_recon: 1.0                 # diffusion x0 reconstruction
+  w_rot6d: 1.0
+  w_fk_joint: 1.0              # FK joint-position loss
+  w_velocity: 0.5             # jitter / smoothness
+  w_hand_consistency: 2.0      # FK paddle wrist must match input 12D (closes the loop)
+  w_foot_contact: 0.2          # keep physics light; HoloMotion RL handles balance
+
+data:
+  amass_root: ""               # set to local AMASS dir once available
+  smpl_model_dir: ""           # set to the coworker's SMPL model dir once shipped
+  target_fps: 30
+
+train:
+  batch_size: 256
+  lr: 2.0e-4
+  device: cuda
+  seed: 0

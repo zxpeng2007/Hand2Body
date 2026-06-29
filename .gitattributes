@@ -1,0 +1,13 @@
+# Normalize line endings: store text as LF in the repo (cross-platform clean).
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF on checkout.
+*.ps1 text eol=crlf
+
+# Binary assets (no diff / no eol conversion).
+*.stl binary
+*.png binary
+*.jpg binary
+*.npz binary
+*.pkl binary
+*.pt binary

@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<!--
+  Table-tennis table: playing-surface slab + net (legs omitted).
+  Slab: 2740 x 1525 x 18 mm  (length X, width Y, thickness Z).
+
+  Height is now BAKED IN: a "world" root link is fixed to the "table" link
+  with a 0.751 m vertical offset (0.76 - 0.018/2), so loading the model at
+  identity places the slab center above world (0,0) with the TOP surface at
+  the regulation 0.76 m. No manual spawn pose needed.
+  Load as FIXED BASE so "world" stays pinned at the origin.
+
+  Net (ITTF): 1.83 m long, 0.1525 m tall, thin static box at table
+  mid-length (x = 0), fixed to the table link.
+
+  Inertials are nominal and IGNORED while fixed; restitution/friction are
+  applied in sim code, not here.
+-->
+<robot name="pingpong_table">
+
+  <!-- world frame: pinned at origin when loaded fixed-base -->
+  <link name="world"/>
+
+  <!-- lift the table so its top surface sits at z = 0.76 m -->
+  <joint name="table_world_joint" type="fixed">
+    <origin xyz="0 0 0.751" rpy="0 0 0"/>
+    <parent link="world"/>
+    <child link="table"/>
+  </joint>
+
+  <link name="table">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="50.0"/>
+      <inertia ixx="9.6915" ixy="0" ixz="0" iyy="31.2830" iyz="0" izz="40.9718"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="2.740 1.525 0.018"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="2.740 1.525 0.018"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- net: thin box across the width (Y), centered at table mid-length (x=0) -->
+  <joint name="net_joint" type="fixed">
+    <!-- z = half slab (0.009) + half net height (0.07625) above table center -->
+    <origin xyz="0 0 0.08525" rpy="0 0 0"/>
+    <parent link="table"/>
+    <child link="net"/>
+  </joint>
+  <link name="net">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.1"/>
+      <inertia ixx="0.0281" ixy="0" ixz="0" iyy="1.94e-04" iyz="0" izz="0.0279"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.002 1.830 0.1525"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.002 1.830 0.1525"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

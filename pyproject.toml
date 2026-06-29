@@ -1,0 +1,34 @@
+[project]
+name = "hand2wholebody"
+version = "0.0.1"
+description = "Generate whole-body SMPL motion from a single left-hand 12D signal (table-tennis humanoid pipeline)."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "numpy>=1.24",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Heavy ML stack — installed into the 3.12 venv via scripts/setup_env.ps1.
+# torch is installed separately from the cu128 index for the Blackwell GPU.
+train = [
+    "smplx>=0.1.28",
+    "trimesh>=4.0",
+    "tqdm>=4.66",
+    "tensorboard>=2.16",
+]
+dev = [
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["h2wb*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

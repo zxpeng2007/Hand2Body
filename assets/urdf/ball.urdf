@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!--
+  Standard 40 mm table-tennis ball: radius 0.02 m, mass 2.7 g.
+  Load as a FREE / FLOATING-BASE rigid body (let the sim add the 6-DOF
+  free joint; do NOT add a URDF floating joint - it's flaky across engines).
+
+  IMPORTANT: a ping-pong ball is a thin HOLLOW shell, so use the spherical
+  SHELL inertia  I = 2/3 m r^2 = 7.2e-7  (not the solid 2/5 m r^2 = 4.3e-7).
+  This ~1.67x difference materially changes spin dynamics, which is central
+  to table tennis - keep the shell value.
+  Restitution/friction are applied in sim code, not here.
+-->
+<robot name="pingpong_ball">
+  <link name="ball">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0027"/>
+      <inertia ixx="7.2e-07" ixy="0" ixz="0" iyy="7.2e-07" iyz="0" izz="7.2e-07"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.02"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.02"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
