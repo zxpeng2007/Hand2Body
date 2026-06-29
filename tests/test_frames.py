@@ -71,6 +71,23 @@ def test_smpl_parents_wellformed():
         assert F.SMPL_PARENTS[j] < j
 
 
+def test_project_convention_is_zhou_column():
+    # CONFIRMED contract (2026-06-29). If this flips, the upstream 12D no longer matches.
+    assert F.PROJECT_R6D == R.R6D_COLUMN
+
+
+def test_hand12_decodes_under_column_and_row_would_be_wrong():
+    # The 12D 6D is Zhou-columns: decoding it as columns recovers the true rotation,
+    # and decoding it as pytorch3d-rows gives a DIFFERENT matrix — so a convention slip
+    # cannot pass silently.
+    Rm = R.axis_angle_to_matrix(np.array([0.3, -0.5, 0.2]))
+    d6 = R.matrix_to_rotation_6d(Rm, convention=R.R6D_COLUMN)
+    h = F.pack_hand12(np.zeros(3), np.zeros(3), d6)
+    assert np.allclose(F.matrix_from_hand12_rot(h), Rm, atol=1e-9)       # column = correct
+    wrong = R.rotation_6d_to_matrix(d6, convention=R.R6D_PYTORCH3D)
+    assert not np.allclose(wrong, Rm, atol=1e-6)                          # row = wrong
+
+
 def test_world_constants_match_urdf():
     assert F.TABLE_TOP_Z == 0.76
     assert abs(F.TABLE_LENGTH_X - 2.740) < 1e-9

@@ -16,7 +16,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from .rotations import matrix_to_rotation_6d, rotation_6d_to_matrix, R6D_PYTORCH3D
+from .rotations import matrix_to_rotation_6d, rotation_6d_to_matrix, R6D_COLUMN
+
+# ---- PROJECT 6D CONVENTION — single source of truth ---------------------- #
+# CONFIRMED 2026-06-29: the upstream 12D wrist orientation uses the Zhou et al. 2019
+# COLUMN packing (first two columns of R). Everything in h2wb (input extraction,
+# decode, internal body rotations, export) reads this constant — change it in ONE
+# place if the contract ever changes. Mirrors configs/default.yaml rot6d_convention.
+PROJECT_R6D = R6D_COLUMN
 
 # --------------------------------------------------------------------------- #
 # World / table geometry (meters) — mirrors assets/urdf/table.urdf
@@ -136,10 +143,10 @@ def decanonicalize_hand12(h: np.ndarray, anchor_xyz: np.ndarray) -> np.ndarray:
 
 def global_orientation_6d(R_global_wrist: np.ndarray) -> np.ndarray:
     """Helper: world-frame wrist rotation matrix -> the 6D stored in the 12D vector."""
-    return matrix_to_rotation_6d(R_global_wrist, convention=R6D_PYTORCH3D)
+    return matrix_to_rotation_6d(R_global_wrist, convention=PROJECT_R6D)
 
 
 def matrix_from_hand12_rot(h: np.ndarray) -> np.ndarray:
     """Recover the global wrist rotation matrix from a 12D signal's 6D slot."""
     _, _, rot6d = unpack_hand12(h)
-    return rotation_6d_to_matrix(rot6d, convention=R6D_PYTORCH3D)
+    return rotation_6d_to_matrix(rot6d, convention=PROJECT_R6D)

@@ -3,6 +3,7 @@
 import numpy as np
 
 from h2wb.export import to_amass_npz as EX
+from h2wb.representations import frames as F
 from h2wb.representations import rotations as R
 
 
@@ -11,8 +12,9 @@ def test_motion6d_to_aa_shapes_and_roundtrip():
     T = 12
     root_R = R.axis_angle_to_matrix(rng.standard_normal((T, 3)) * 0.3)
     body_R = R.axis_angle_to_matrix(rng.standard_normal((T, 23, 3)) * 0.3)
-    root6d = R.matrix_to_rotation_6d(root_R)
-    body6d = R.matrix_to_rotation_6d(body_R)
+    # encode with the project convention so it matches motion6d_to_aa's decode
+    root6d = R.matrix_to_rotation_6d(root_R, convention=F.PROJECT_R6D)
+    body6d = R.matrix_to_rotation_6d(body_R, convention=F.PROJECT_R6D)
     poses = EX.motion6d_to_aa(root6d, body6d)
     assert poses.shape == (T, 72)
     # re-encode and compare rotations (axis-angle is not unique, matrices are)

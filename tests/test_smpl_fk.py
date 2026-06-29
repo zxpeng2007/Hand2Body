@@ -43,8 +43,8 @@ def test_wrist_orientation_6d_decodes_to_global_rotation():
     poses = rng.standard_normal((8, 72)) * 0.3
     d6 = FK.wrist_orientation_6d(poses, joint=F.PADDLE_HAND_JOINT)
     Rg = FK.global_joint_rotations(poses)[:, F.PADDLE_HAND_JOINT]
-    Rdec = R.rotation_6d_to_matrix(d6)
-    assert np.allclose(Rg, Rdec, atol=1e-9)         # cycle-consistency
+    Rdec = R.rotation_6d_to_matrix(d6, convention=F.PROJECT_R6D)
+    assert np.allclose(Rg, Rdec, atol=1e-9)         # cycle-consistency under project convention
 
 
 def test_extract_hand12_shapes_and_consistency():

@@ -55,7 +55,7 @@ def global_joint_rotations(
 def wrist_orientation_6d(
     poses: np.ndarray,
     joint: int = F.PADDLE_HAND_JOINT,
-    convention: str = R.R6D_PYTORCH3D,
+    convention: str = F.PROJECT_R6D,
 ) -> np.ndarray:
     """(T, 72) -> (T, 6): the GLOBAL wrist orientation as the 6D stored in the 12D vector."""
     Rg = global_joint_rotations(poses)                   # (T, J, 3, 3)
@@ -69,7 +69,7 @@ def extract_hand12(
     joints_fn: JointsFn,
     fps: float = 30.0,
     joint: int = F.PADDLE_HAND_JOINT,
-    convention: str = R.R6D_PYTORCH3D,
+    convention: str = F.PROJECT_R6D,
 ) -> np.ndarray:
     """Build the (T, 12) left-wrist signal = [pos(3), lin_vel(3), rot6d(6)], world frame.
 

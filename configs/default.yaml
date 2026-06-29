@@ -6,9 +6,8 @@ frame:
   control_fps: 50              # HoloMotion control loop; interpolate 30->50 only at handoff
 
 representation:
-  rot6d_convention: pytorch3d_row   # one of: pytorch3d_row | zhou_column  (CONTRACT §2 ❓)
-  # If the coworker emits the AI4Animation Look(z,y) pair instead, set an input adapter
-  # via h2wb.representations.rotations.look_to_matrix and re-export as pytorch3d_row.
+  rot6d_convention: zhou_column     # CONFIRMED 2026-06-29: coworker emits Zhou-2019 columns.
+  # one of: pytorch3d_row | zhou_column. Single source of truth is frames.PROJECT_R6D.
   paddle_hand_joint: 20        # SMPL left_wrist
   smpl_num_joints: 24
   num_betas: 10

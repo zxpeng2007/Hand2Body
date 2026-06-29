@@ -51,8 +51,9 @@ def motion6d_to_aa(root_orient_6d: np.ndarray, body_rot6d: np.ndarray) -> np.nda
 
     root_orient_6d: (T, 6)         body_rot6d: (T, 23, 6)  -> (T, 72)
     """
-    root_R = R.rotation_6d_to_matrix(root_orient_6d)            # (T,3,3)
-    body_R = R.rotation_6d_to_matrix(body_rot6d)               # (T,23,3,3)
+    conv = Fr.PROJECT_R6D
+    root_R = R.rotation_6d_to_matrix(root_orient_6d, convention=conv)   # (T,3,3)
+    body_R = R.rotation_6d_to_matrix(body_rot6d, convention=conv)       # (T,23,3,3)
     root_aa = R.matrix_to_axis_angle(root_R)                   # (T,3)
     body_aa = R.matrix_to_axis_angle(body_R)                   # (T,23,3)
     T = root_aa.shape[0]

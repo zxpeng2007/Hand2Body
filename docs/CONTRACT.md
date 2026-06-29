@@ -42,15 +42,14 @@ the left, confirmed by `g1_29dof_rev_1_0_pingpong.urdf`):
   rotation). Forehand vs. backhand is decided **by this global orientation** — so it
   must be preserved, never yaw-canonicalized away.
 - 🔒 Velocity is in **m/s** (frame-rate independent), central finite difference.
-- ❓ **6D basis convention** — our internal default is PyTorch3D row-packing
-  (`R6D_PYTORCH3D`: first two rows of R). The upstream ai4animationpy generator stores
-  orientation as an AxisZ/AxisY forward-up pair (`Rotation.Look(z, y)`). **Confirm which
-  the coworker emits.** Adapter lives in `h2wb/representations/rotations.py`
-  (`look_to_matrix`, `R6D_COLUMN`); reconciling it is a one-line config change.
-- ❓ Does the 6D encode the **wrist joint** orientation or the **paddle/hand-link** frame
-  (they differ by the fixed wrist→paddle offset)? On the robot the paddle is rigidly
-  mounted to `left_wrist_yaw_link` with the paddle long-axis along the wrist +x. For the
-  human side we use the SMPL left-wrist orientation; keep this consistent.
+- 🔒 **6D basis convention = Zhou et al. 2019 COLUMNS** (`R6D_COLUMN`: first two columns
+  of R), confirmed 2026-06-29. Single source of truth: `h2wb.representations.frames.PROJECT_R6D`
+  (mirrored in `configs/default.yaml`). The whole project — input extraction, decode,
+  internal body rotations, and export — uses this one convention.
+- 🔒 The 6D encodes the **wrist JOINT** orientation (SMPL `left_wrist`, joint 20) —
+  confirmed 2026-06-29. No wrist→paddle offset is applied on the human side. (On the
+  robot the paddle is rigidly mounted to `left_wrist_yaw_link`; that offset is handled
+  downstream by GMR/retarget, not here.)
 
 ## 3. Stage-2 → Stage-3 output: whole-body SMPL 🔒
 
@@ -87,11 +86,11 @@ Plain **SMPL** (rigid wrist is enough — no SMPL-X fingers). AMASS-style `.npz`
 - **Orientation:** keep in the **world frame** (do **not** remove yaw) — see §2.
 - The removed anchor is stored and re-applied to map predictions back to world.
 
-## 6. Open items for the coworker ❓
+## 6. Open items for the coworker
 
-1. 6D basis of the emitted 12D (PyTorch3D-row vs Zhou-column vs AI4Animation Look).
-2. Wrist-joint vs paddle-link orientation in the 6D.
-3. Any extra anchor available besides the single hand (root/origin, or a strike-phase
+1. ✅ **RESOLVED 2026-06-29** — 6D basis = Zhou-2019 **columns** (`R6D_COLUMN`).
+2. ✅ **RESOLVED 2026-06-29** — 6D encodes the **wrist joint** (SMPL `left_wrist`), no offset.
+3. ❓ Any extra anchor available besides the single hand (root/origin, or a strike-phase
    backswing/strike/recovery signal) — would sharply cut single-hand ambiguity.
 4. The SMPL build being updated by the coworker — which package/version, num_betas, and
    whether it returns global joint orientations or only joint positions (we compute global
