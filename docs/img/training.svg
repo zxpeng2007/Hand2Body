@@ -1,0 +1,62 @@
+<svg viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',Roboto,sans-serif">
+  <title>Hand2WholeBody training and data flow</title>
+  <rect x="0" y="0" width="1000" height="300" rx="14" fill="#ffffff"/>
+  <defs>
+    <marker id="ah3" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <text x="24" y="40" font-size="21" font-weight="700" fill="#0f172a">Training &amp; data flow</text>
+  <text x="24" y="63" font-size="13.5" fill="#64748b">From the coworker's SMPL data to a trained, evaluated, visualized model.</text>
+
+  <!-- train.pkl cylinder -->
+  <path d="M24,108 L24,156 A70,8 0 0 0 164,156 L164,108 Z" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+  <ellipse cx="94" cy="108" rx="70" ry="8" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+  <text x="94" y="132" text-anchor="middle" font-size="13.5" font-weight="600" fill="#0f172a">train.pkl</text>
+  <text x="94" y="149" text-anchor="middle" font-size="10" fill="#64748b">7753 seqs · 4.1M frames</text>
+
+  <!-- FK extract -->
+  <rect x="196" y="100" width="120" height="64" rx="11" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.6"/>
+  <text x="256" y="128" text-anchor="middle" font-size="13.5" font-weight="600" fill="#0f172a">FK extract</text>
+  <text x="256" y="146" text-anchor="middle" font-size="10" fill="#64748b">12D + body · calib rest</text>
+
+  <!-- cache cylinder -->
+  <path d="M348,108 L348,156 A60,8 0 0 0 468,156 L468,108 Z" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+  <ellipse cx="408" cy="108" rx="60" ry="8" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+  <text x="408" y="132" text-anchor="middle" font-size="13.5" font-weight="600" fill="#0f172a">pairs cache</text>
+  <text x="408" y="149" text-anchor="middle" font-size="10" fill="#64748b">2.3 GB · mmap</text>
+
+  <!-- dataset -->
+  <rect x="500" y="100" width="120" height="64" rx="11" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.6"/>
+  <text x="560" y="128" text-anchor="middle" font-size="13.5" font-weight="600" fill="#0f172a">dataset</text>
+  <text x="560" y="146" text-anchor="middle" font-size="10" fill="#64748b">train / val split</text>
+
+  <!-- train (accent) -->
+  <rect x="652" y="96" width="130" height="72" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"/>
+  <text x="717" y="127" text-anchor="middle" font-size="15" font-weight="700" fill="#1d4ed8">train</text>
+  <text x="717" y="146" text-anchor="middle" font-size="10.5" fill="#475569">diffusion / regressor</text>
+
+  <!-- checkpoint -->
+  <rect x="814" y="104" width="120" height="56" rx="11" fill="#ecfdf5" stroke="#34d399" stroke-width="1.6"/>
+  <text x="874" y="137" text-anchor="middle" font-size="13.5" font-weight="600" fill="#065f46">checkpoint</text>
+
+  <!-- main arrows -->
+  <line x1="164" y1="132" x2="194" y2="132" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah3)"/>
+  <line x1="316" y1="132" x2="346" y2="132" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah3)"/>
+  <line x1="468" y1="132" x2="498" y2="132" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah3)"/>
+  <line x1="620" y1="132" x2="650" y2="132" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah3)"/>
+  <line x1="782" y1="132" x2="812" y2="132" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah3)"/>
+
+  <!-- branch outputs -->
+  <rect x="720" y="216" width="124" height="54" rx="11" fill="#ecfdf5" stroke="#34d399" stroke-width="1.4"/>
+  <text x="782" y="238" text-anchor="middle" font-size="12.5" font-weight="600" fill="#065f46">held-out eval</text>
+  <text x="782" y="255" text-anchor="middle" font-size="10" fill="#047857">MPJPE · wrist · jitter</text>
+
+  <rect x="858" y="216" width="118" height="54" rx="11" fill="#ecfdf5" stroke="#34d399" stroke-width="1.4"/>
+  <text x="917" y="238" text-anchor="middle" font-size="12.5" font-weight="600" fill="#065f46">render</text>
+  <text x="917" y="255" text-anchor="middle" font-size="10" fill="#047857">skeleton · mesh</text>
+
+  <path d="M874,160 L874,190 L782,190 L782,214" fill="none" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ah3)"/>
+  <path d="M874,160 L874,190 L917,190 L917,214" fill="none" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ah3)"/>
+</svg>

@@ -1,0 +1,53 @@
+<svg viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',Roboto,sans-serif">
+  <title>Hand2WholeBody model and I/O</title>
+  <rect x="0" y="0" width="1000" height="300" rx="14" fill="#ffffff"/>
+  <defs>
+    <marker id="ah2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <text x="34" y="40" font-size="21" font-weight="700" fill="#0f172a">Model &amp; I/O</text>
+  <text x="34" y="63" font-size="13.5" fill="#64748b">Per-frame hand signal in, whole-body SMPL out — causal, streaming.</text>
+
+  <!-- input -->
+  <rect x="34" y="100" width="172" height="80" rx="12" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.6"/>
+  <text x="120" y="128" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">12D hand signal</text>
+  <text x="120" y="147" text-anchor="middle" font-size="11" fill="#64748b">pos · velocity · 6D rot</text>
+  <text x="120" y="163" text-anchor="middle" font-size="10.5" fill="#94a3b8">world frame · global</text>
+
+  <!-- model core (accent) -->
+  <rect x="238" y="96" width="214" height="88" rx="13" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"/>
+  <text x="345" y="128" text-anchor="middle" font-size="15.5" font-weight="700" fill="#1d4ed8">Diffusion model</text>
+  <text x="345" y="148" text-anchor="middle" font-size="11.5" fill="#475569">causal DiT denoiser</text>
+  <text x="345" y="164" text-anchor="middle" font-size="11" fill="#64748b">past-hand window · DDIM</text>
+
+  <!-- body -->
+  <rect x="484" y="100" width="158" height="80" rx="12" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.6"/>
+  <text x="563" y="128" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">135-D body</text>
+  <text x="563" y="147" text-anchor="middle" font-size="11" fill="#64748b">root + 22 joints</text>
+  <text x="563" y="163" text-anchor="middle" font-size="10.5" fill="#94a3b8">6D per joint</text>
+
+  <!-- smpl -->
+  <rect x="674" y="100" width="140" height="80" rx="12" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.6"/>
+  <text x="744" y="135" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">SMPL</text>
+  <text x="744" y="154" text-anchor="middle" font-size="11" fill="#64748b">pose (72) + trans</text>
+
+  <!-- export -->
+  <rect x="846" y="100" width="124" height="80" rx="12" fill="#ecfdf5" stroke="#34d399" stroke-width="1.6"/>
+  <text x="908" y="135" text-anchor="middle" font-size="14" font-weight="600" fill="#065f46">Export</text>
+  <text x="908" y="154" text-anchor="middle" font-size="10.5" fill="#047857">.npz · SMPL-X</text>
+
+  <!-- flow arrows -->
+  <line x1="206" y1="140" x2="236" y2="140" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah2)"/>
+  <line x1="452" y1="140" x2="482" y2="140" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah2)"/>
+  <line x1="642" y1="140" x2="672" y2="140" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah2)"/>
+  <line x1="814" y1="140" x2="844" y2="140" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah2)"/>
+
+  <!-- losses -->
+  <rect x="238" y="222" width="404" height="50" rx="11" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.4"/>
+  <text x="258" y="243" font-size="12.5" font-weight="600" fill="#92400e">Training losses</text>
+  <text x="258" y="261" font-size="11" fill="#b45309">recon · 6D rotation · FK joints · velocity · hand-consistency</text>
+  <line x1="345" y1="222" x2="345" y2="186" stroke="#f59e0b" stroke-width="1.6" marker-end="url(#ah2)"/>
+  <text x="360" y="208" font-size="10.5" fill="#b45309">supervise x0</text>
+</svg>

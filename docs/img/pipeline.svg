@@ -1,0 +1,56 @@
+<svg viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',Roboto,sans-serif">
+  <title>Hand2WholeBody end-to-end pipeline</title>
+  <rect x="0" y="0" width="1000" height="300" rx="14" fill="#ffffff"/>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <text x="40" y="42" font-size="21" font-weight="700" fill="#0f172a">Hand2WholeBody — end-to-end pipeline</text>
+  <text x="40" y="66" font-size="13.5" fill="#64748b">A single left-hand 12D signal drives a whole-body humanoid.</text>
+
+  <!-- Stage 1: upstream -->
+  <rect x="40" y="120" width="156" height="68" rx="11" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+  <text x="118" y="150" text-anchor="middle" font-size="14.5" font-weight="600" fill="#0f172a">Hand generator</text>
+  <text x="118" y="170" text-anchor="middle" font-size="11.5" fill="#64748b">table-tennis</text>
+
+  <!-- Stage 2: this repo -->
+  <rect x="246" y="116" width="206" height="76" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"/>
+  <text x="349" y="148" text-anchor="middle" font-size="15.5" font-weight="700" fill="#1d4ed8">Hand2WholeBody</text>
+  <text x="349" y="168" text-anchor="middle" font-size="11.5" fill="#475569">12D → whole-body SMPL</text>
+  <text x="349" y="183" text-anchor="middle" font-size="10.5" fill="#64748b">causal diffusion model</text>
+
+  <!-- Stage 3: downstream -->
+  <rect x="502" y="120" width="120" height="68" rx="11" fill="#ecfdf5" stroke="#34d399" stroke-width="1.6"/>
+  <text x="562" y="150" text-anchor="middle" font-size="14.5" font-weight="600" fill="#0f172a">GMR</text>
+  <text x="562" y="170" text-anchor="middle" font-size="11.5" fill="#64748b">retarget → G1</text>
+
+  <rect x="662" y="120" width="120" height="68" rx="11" fill="#ecfdf5" stroke="#34d399" stroke-width="1.6"/>
+  <text x="722" y="150" text-anchor="middle" font-size="14.5" font-weight="600" fill="#0f172a">HoloMotion</text>
+  <text x="722" y="170" text-anchor="middle" font-size="11.5" fill="#64748b">whole-body tracker</text>
+
+  <rect x="822" y="120" width="148" height="68" rx="34" fill="#ecfdf5" stroke="#10b981" stroke-width="1.8"/>
+  <text x="896" y="150" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f46">Unitree G1</text>
+  <text x="896" y="170" text-anchor="middle" font-size="11.5" fill="#047857">29-DoF humanoid</text>
+
+  <!-- flow arrows -->
+  <line x1="196" y1="154" x2="244" y2="154" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="220" y="146" text-anchor="middle" font-size="10.5" fill="#64748b">12D</text>
+  <line x1="452" y1="154" x2="500" y2="154" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="476" y="146" text-anchor="middle" font-size="10.5" fill="#64748b">SMPL-X</text>
+  <line x1="622" y1="154" x2="660" y2="154" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="641" y="146" text-anchor="middle" font-size="10.5" fill="#64748b">dof</text>
+  <line x1="782" y1="154" x2="820" y2="154" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="801" y="146" text-anchor="middle" font-size="10.5" fill="#64748b">50 Hz</text>
+
+  <!-- legend -->
+  <rect x="40" y="232" width="13" height="13" rx="3" fill="#fff7ed" stroke="#fb923c" stroke-width="1.4"/>
+  <text x="60" y="243" font-size="12" fill="#475569">Upstream (coworker)</text>
+  <rect x="232" y="232" width="13" height="13" rx="3" fill="#eff6ff" stroke="#2563eb" stroke-width="1.6"/>
+  <text x="252" y="243" font-size="12" fill="#475569">Hand2WholeBody (this repo)</text>
+  <rect x="470" y="232" width="13" height="13" rx="3" fill="#ecfdf5" stroke="#10b981" stroke-width="1.4"/>
+  <text x="490" y="243" font-size="12" fill="#475569">Retarget + track (robot)</text>
+
+  <text x="40" y="276" font-size="12" fill="#94a3b8">30 Hz · world frame at table center  ·  validated: 20.7 mm held-out MPJPE, wrist ~8 mm / &lt;1°</text>
+</svg>
