@@ -22,18 +22,22 @@ constants come from [`configs/default.yaml`](configs/default.yaml).
 
 | Milestone | State |
 |-----------|-------|
-| **M0** repo + env + frozen contract | ✅ scaffold, world frame, configs; torch env installing |
+| **M0** repo + env + frozen contract | ✅ scaffold, world frame, configs; torch 2.11+cu128 on GPU |
 | **M1** SMPL→12D FK extractor + cycle-consistency | ✅ `h2wb/data/smpl_fk.py`, verified on synthetic data |
-| **M2** deterministic regressor baseline | ⬜ interface stubbed in `h2wb/models/` |
+| **M2** deterministic regressor baseline | ✅ causal transformer + FK losses + training loop, verified on GPU |
 | **M3** self-record swings → GVHMR fine-tune | ⬜ |
-| **M4** streaming diffusion (primary) | ⬜ `h2wb/models/diffmlp.py` interface |
+| **M4** streaming diffusion (primary) | ⬜ `h2wb/models/diffmlp.py` backbone ready |
 | **M5** close the loop: SMPL→GMR→MuJoCo→HoloMotion | ⬜ `h2wb/export/` |
 | **M6** domain-gap hardening | ⬜ |
 
-The representation core (`h2wb/representations/`) and the FK extractor (`h2wb/data/`)
-are implemented and **tested** (`pytest` — 28 passing). The model, losses, dataset, and
-export layers are interface stubs to be filled once the torch env, the coworker's SMPL
-build, and training data land.
+6D rotation convention is **confirmed** = Zhou-2019 columns (`frames.PROJECT_R6D`). The
+regressor trains hand[1..L]→body[1..L] causally; run `python scripts/train.py --synthetic`
+to smoke-test the whole loop without data. Real paired data plugs in via `scripts/extract_amass.py`.
+
+The representation core (`h2wb/representations/`), FK extractor (`h2wb/data/`), the M2
+regressor + training loop, losses, dataset, and export are implemented and **tested**
+(`pytest` — 47 passing, incl. an end-to-end overfit test). The M4 diffusion model is the
+remaining major piece.
 
 ## Layout
 
