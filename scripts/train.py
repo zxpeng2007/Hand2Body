@@ -31,6 +31,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/default.yaml")
     ap.add_argument("--arch", default="regressor", choices=["regressor", "diffusion"])
+    ap.add_argument("--cache", default="", help="fast pairs cache from scripts/cache_pairs.py")
+    ap.add_argument("--keep-labels", default="", help="comma act_cat to KEEP (else all)")
+    ap.add_argument("--drop-labels", default="", help="comma act_cat to DROP")
     ap.add_argument("--pkl", default="", help="coworker train.pkl (SMPL) — FK-extracts the 12D")
     ap.add_argument("--pairs", default="", help="dir of pre-extracted pair_*.npz")
     ap.add_argument("--synthetic", action="store_true")
@@ -48,7 +51,17 @@ def main():
     weights = cfg.get("loss", default_loss_weights())
 
     rest_joints = None
-    if args.pkl:
+    if args.cache:
+        from h2wb.data.cache import load_pairs_cache
+        clips, rest_joints = load_pairs_cache(
+            args.cache,
+            keep_labels=[s for s in args.keep_labels.split(",") if s] or None,
+            drop_labels=[s for s in args.drop_labels.split(",") if s] or None)
+        if args.limit:
+            clips = clips[:args.limit]
+        print(f"loaded {len(clips)} sequences from cache {args.cache}; "
+              f"rest_joints {'calibrated' if rest_joints is not None else 'approx'}")
+    elif args.pkl:
         from h2wb.data.pkl_loader import load_clips
         clips, rest_joints = load_clips(args.pkl, fps=cfg["frame"]["fps"],
                                         limit=(args.limit or None))
