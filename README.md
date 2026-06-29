@@ -26,7 +26,7 @@ constants come from [`configs/default.yaml`](configs/default.yaml).
 | **M1** SMPL→12D FK extractor + cycle-consistency | ✅ `h2wb/data/smpl_fk.py`, verified on synthetic data |
 | **M2** deterministic regressor baseline | ✅ causal transformer + FK losses + training loop, verified on GPU |
 | **M3** self-record swings → GVHMR fine-tune | ⬜ |
-| **M4** streaming diffusion (primary) | ⬜ `h2wb/models/diffmlp.py` backbone ready |
+| **M4** streaming diffusion (primary) | ✅ causal DiT denoiser + DDIM + streaming, verified on GPU; SAGE/distillation = polish |
 | **M5** close the loop: SMPL→GMR→MuJoCo→HoloMotion | ⬜ `h2wb/export/` |
 | **M6** domain-gap hardening | ⬜ |
 
@@ -35,9 +35,10 @@ regressor trains hand[1..L]→body[1..L] causally; run `python scripts/train.py 
 to smoke-test the whole loop without data. Real paired data plugs in via `scripts/extract_amass.py`.
 
 The representation core (`h2wb/representations/`), FK extractor (`h2wb/data/`), the M2
-regressor + training loop, losses, dataset, and export are implemented and **tested**
-(`pytest` — 47 passing, incl. an end-to-end overfit test). The M4 diffusion model is the
-remaining major piece.
+regressor, the M4 conditional diffusion model + streaming, losses, dataset, and export are
+implemented and **tested** (`pytest` — 54 passing, incl. overfit + generative tests).
+Both models train via `scripts/train.py --arch {regressor,diffusion}`. Remaining: train on
+real data (M3), and close the loop through GMR/HoloMotion (M5).
 
 ## Layout
 
