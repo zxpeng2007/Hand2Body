@@ -42,6 +42,14 @@ def test_generate_to_npz_writes_contract_keys(tmp_path):
     assert int(d["mocap_frame_rate"]) == 30
 
 
+def test_generate_long_stitches_beyond_budget():
+    model = RegressorHand2Body(hidden=32, n_layers=1, max_len=64)
+    hand = _hand_seq(T=200)                      # > the 64-frame budget -> must chunk
+    motion = INF.generate_long(model, hand, arch="regressor", chunk=60, overlap=15)
+    assert motion.shape == (200, B.MOTION_DIM)
+    assert np.isfinite(motion).all()
+
+
 def test_sequence_too_long_raises():
     model = RegressorHand2Body(hidden=32, n_layers=1, max_len=16)
     hand = _hand_seq(T=40)

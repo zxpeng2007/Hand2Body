@@ -38,6 +38,34 @@ def generate(model, hand12, arch="regressor", diffusion=None, sample_steps=8, de
     return motion
 
 
+def generate_long(model, hand12, chunk=250, overlap=50, **kw):
+    """Generate arbitrarily long motion by overlapping chunks (the model is capped at ~256
+    frames single-shot). Each chunk is generated in world coords (generate() de-canonicalizes),
+    then cross-faded across overlaps for continuity. hand12 (T,12) -> motion (T,135)."""
+    hand12 = np.asarray(hand12, np.float32)
+    T = hand12.shape[0]
+    if T <= chunk:
+        return generate(model, hand12, **kw)
+    step = chunk - overlap
+    starts = list(range(0, T - chunk + 1, step))
+    if starts[-1] != T - chunk:
+        starts.append(T - chunk)
+    out = np.zeros((T, B.MOTION_DIM), np.float32)
+    out[0:chunk] = generate(model, hand12[0:chunk], **kw)
+    prev_end = chunk
+    for s in starts[1:]:
+        seg = generate(model, hand12[s:s + chunk], **kw)             # covers [s, s+chunk)
+        ov = prev_end - s                                            # overlap length
+        if ov > 0:
+            a = np.linspace(1.0, 0.0, ov, dtype=np.float32)[:, None]
+            out[s:prev_end] = a * out[s:prev_end] + (1.0 - a) * seg[:ov]
+            out[prev_end:s + chunk] = seg[ov:]
+        else:
+            out[s:s + chunk] = seg
+        prev_end = s + chunk
+    return out
+
+
 def generate_to_npz(path, model, hand12, betas=None, fps=30, gender="neutral", **kw):
     """Generate and write the AMASS-style SMPL .npz. Returns the path."""
     from .export.to_amass_npz import smpl_motion_to_amass_npz
