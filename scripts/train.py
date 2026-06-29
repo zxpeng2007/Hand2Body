@@ -36,6 +36,7 @@ def main():
     ap.add_argument("--synthetic", action="store_true")
     ap.add_argument("--steps", type=int, default=2000)
     ap.add_argument("--length", type=int, default=40)
+    ap.add_argument("--limit", type=int, default=0, help="cap #sequences from --pkl (0 = all)")
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--out", default="")
     args = ap.parse_args()
@@ -43,10 +44,13 @@ def main():
     cfg = yaml.safe_load(open(args.config))
     weights = cfg.get("loss", default_loss_weights())
 
+    rest_joints = None
     if args.pkl:
-        from h2wb.data.pkl_loader import pkl_to_clips
-        clips = pkl_to_clips(args.pkl, fps=cfg["frame"]["fps"])
-        print(f"loaded {len(clips)} sequences from {args.pkl}")
+        from h2wb.data.pkl_loader import load_clips
+        clips, rest_joints = load_clips(args.pkl, fps=cfg["frame"]["fps"],
+                                        limit=(args.limit or None))
+        print(f"loaded {len(clips)} sequences from {args.pkl}; "
+              f"rest_joints {'calibrated' if rest_joints is not None else 'approx'}")
     elif args.pairs:
         clips = load_pairs(args.pairs)
         print(f"loaded {len(clips)} clips from {args.pairs}")
@@ -61,9 +65,10 @@ def main():
 
     if args.arch == "diffusion":
         model, _diff, history = train_diffusion(clips, length=args.length, steps=args.steps,
-                                                device=device, weights=w)
+                                                device=device, weights=w, rest_joints=rest_joints)
     else:
-        model, history = train(clips, length=args.length, steps=args.steps, device=device, weights=w)
+        model, history = train(clips, length=args.length, steps=args.steps, device=device,
+                               weights=w, rest_joints=rest_joints)
 
     for h in history:
         print(h)

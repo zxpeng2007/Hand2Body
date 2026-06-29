@@ -42,9 +42,20 @@ def build_model(hidden=256, n_layers=4, n_heads=8):
     return RegressorHand2Body(hidden=hidden, n_layers=n_layers, n_heads=n_heads)
 
 
+def _rest_tensor(rest_joints, device):
+    if rest_joints is None:
+        return None
+    import torch
+    return torch.as_tensor(rest_joints, dtype=torch.float32, device=device)
+
+
 def train(clips, length=40, steps=300, batch_size=64, lr=2e-4, device="cpu",
-          weights=None, log_every=50, hidden=256, n_layers=4, seed=0):
-    """Train the regressor on (hand, body) clips. Returns (model, history list of dicts)."""
+          weights=None, log_every=50, hidden=256, n_layers=4, seed=0, rest_joints=None):
+    """Train the regressor on (hand, body) clips. Returns (model, history list of dicts).
+
+    `rest_joints` (22,3): calibrated FK rest skeleton (from pkl_loader.calibrate_rest_joints)
+    so the FK/hand-consistency losses are exact for the data; None falls back to the approx skeleton.
+    """
     import torch
     from torch.utils.data import DataLoader
     from .data.dataset import SequenceDataset
@@ -58,7 +69,7 @@ def train(clips, length=40, steps=300, batch_size=64, lr=2e-4, device="cpu",
     dl = DataLoader(ds, batch_size=min(batch_size, len(ds)), shuffle=True, drop_last=False)
 
     model = build_model(hidden=hidden, n_layers=n_layers).to(device)
-    rest = None  # default approx rest joints inside fk_torch
+    rest = _rest_tensor(rest_joints, device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr)
 
     history, step = [], 0
@@ -79,7 +90,8 @@ def train(clips, length=40, steps=300, batch_size=64, lr=2e-4, device="cpu",
 
 
 def train_diffusion(clips, length=40, steps=2000, batch_size=64, lr=2e-4, device="cpu",
-                    weights=None, log_every=50, hidden=256, n_layers=4, num_steps=1000, seed=0):
+                    weights=None, log_every=50, hidden=256, n_layers=4, num_steps=1000, seed=0,
+                    rest_joints=None):
     """Train the M4 conditional diffusion model (DiTDenoiser). Returns (model, diffusion, history).
 
     Per step: noise the GT body to a random diffusion time, denoise it conditioned on the
@@ -101,6 +113,7 @@ def train_diffusion(clips, length=40, steps=2000, batch_size=64, lr=2e-4, device
 
     model = DiTDenoiser(hidden=hidden, n_layers=n_layers).to(device)
     diff = GaussianDiffusion(num_steps=num_steps, device=device)
+    rest = _rest_tensor(rest_joints, device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr)
 
     history, step = [], 0
@@ -111,7 +124,7 @@ def train_diffusion(clips, length=40, steps=2000, batch_size=64, lr=2e-4, device
             t = diff.sample_t(body.shape[0], device)
             x_t = diff.q_sample(body, t, torch.randn_like(body))
             x0_hat = model(x_t, t, hand)
-            total, parts = L.compute_losses(x0_hat, body, hand, weights)
+            total, parts = L.compute_losses(x0_hat, body, hand, weights, rest_joints=rest)
             opt.zero_grad(); total.backward(); opt.step()
             if step % log_every == 0:
                 history.append({"step": step, "total": float(total.detach()),

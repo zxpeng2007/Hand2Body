@@ -16,6 +16,16 @@ import pickle
 import numpy as np
 
 
+def _load(path):
+    """Prefer the joblib loader (with numpy._core shim); fall back to plain pickle."""
+    try:
+        from h2wb.data.pkl_loader import load_smpl_pkl
+        return load_smpl_pkl(path)
+    except Exception:
+        with open(path, "rb") as f:
+            return pickle.load(f)
+
+
 def describe(obj, name="root", depth=0, max_depth=4, max_keys=40):
     pad = "  " * depth
     t = type(obj).__name__
@@ -50,8 +60,7 @@ def main():
     ap.add_argument("path")
     ap.add_argument("--max-depth", type=int, default=4)
     args = ap.parse_args()
-    with open(args.path, "rb") as f:
-        obj = pickle.load(f)
+    obj = _load(args.path)
     describe(obj, max_depth=args.max_depth)
 
 
