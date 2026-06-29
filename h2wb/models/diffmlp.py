@@ -22,6 +22,7 @@ import math
 try:
     import torch
     import torch.nn as nn
+    import torch.nn.functional as F
     _HAS_TORCH = True
 except Exception:  # pragma: no cover - torch optional at import time
     _HAS_TORCH = False
@@ -93,7 +94,7 @@ if _HAS_TORCH:
         def forward(self, x, c):                       # x: (B, P, dim), c: (B, cond_dim)
             scale, shift = self.film(c).chunk(2, dim=-1)
             h = self.norm1(x)
-            h = torch.silu(self.fc(h))
+            h = F.silu(self.fc(h))
             h = self.conv(h.transpose(1, 2)).transpose(1, 2)
             h = self.norm2(h) * (1 + scale[:, None]) + shift[:, None]
             return x + h
