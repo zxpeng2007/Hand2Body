@@ -25,7 +25,7 @@ constants come from [`configs/default.yaml`](configs/default.yaml).
 | **M0** repo + env + frozen contract | ✅ scaffold, world frame, configs; torch 2.11+cu128 on GPU |
 | **M1** SMPL→12D FK extractor + cycle-consistency | ✅ `h2wb/data/smpl_fk.py`, verified on synthetic data |
 | **M2** deterministic regressor baseline | ✅ causal transformer + FK losses + training loop, verified on GPU |
-| **M3** self-record swings → GVHMR fine-tune | ⬜ |
+| **M3** train on real data (train.pkl) | ✅ diffusion: **20.7 mm** held-out MPJPE, wrist ~8 mm / <1° — see [results.md](docs/results.md) |
 | **M4** streaming diffusion (primary) | ✅ causal DiT denoiser + DDIM + streaming, verified on GPU; SAGE/distillation = polish |
 | **M5** close the loop: SMPL→GMR→MuJoCo→HoloMotion | ◐ GMR-ready SMPL-X export + verified [runbook](docs/stage3_runbook.md); robot run is on user's Linux/G1 |
 | **M6** domain-gap hardening | ⬜ |
