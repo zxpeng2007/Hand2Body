@@ -86,24 +86,33 @@ try:
     from torch.utils.data import Dataset
 
     class SequenceDataset(Dataset):
-        """Same-frame windows for the M2 regressor. clips = list of (hand12, body) arrays."""
+        """Same-frame windows over (hand12, body) clips. LAZY: stores only the clips + a window
+        index and slices/canonicalizes on __getitem__, so it scales to millions of frames without
+        materializing every window in RAM."""
 
         def __init__(self, clips, length: int, stride: int = 1, canonicalize: bool = True):
-            hs, bs = [], []
-            for hand12, body in clips:
-                hw, bw = make_sequence_windows(hand12, body, length, stride)
-                if len(hw):
-                    if canonicalize:
-                        hw, bw, _ = canonicalize_window(hw, bw)
-                    hs.append(hw); bs.append(bw)
-            self.hand = np.concatenate(hs) if hs else np.empty((0, length, 12), np.float32)
-            self.body = np.concatenate(bs) if bs else np.empty((0, length, 135), np.float32)
+            self.length = length
+            self.canon = canonicalize
+            self.clips = [(np.asarray(h, np.float32), np.asarray(b, np.float32)) for h, b in clips]
+            self.index = []                                  # (clip_idx, start_frame)
+            for ci, (h, _) in enumerate(self.clips):
+                T = len(h)
+                if T < length:
+                    continue
+                self.index.extend((ci, t) for t in range(0, T - length + 1, stride))
 
         def __len__(self):
-            return len(self.hand)
+            return len(self.index)
 
         def __getitem__(self, i):
-            return torch.from_numpy(self.hand[i]), torch.from_numpy(self.body[i])
+            ci, t = self.index[i]
+            h, b = self.clips[ci]
+            hw = h[t:t + self.length]
+            bw = b[t:t + self.length]
+            if self.canon:
+                hw, bw, _ = canonicalize_window(hw, bw)
+            return (torch.from_numpy(np.ascontiguousarray(hw)),
+                    torch.from_numpy(np.ascontiguousarray(bw)))
 
     class Hand2BodyDataset(Dataset):
         """Concatenate windows from many clips. Pass lists of (hand12, body) numpy arrays."""
