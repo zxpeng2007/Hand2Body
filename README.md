@@ -41,8 +41,17 @@ python -m h2wb.export.aitviewer_vis --input train.pkl --seq_idx 0         # view
 python scripts/generate.py --arch diffusion --checkpoint checkpoints/diffusion.pt --hand H.npy --out out.npz --viz out.png
 python -m h2wb.export.aitviewer_vis --input out.npz                       # view a generated clip
 ```
-Visualization is **aitviewer** (real SMPL mesh; needs SMPL model files + a display). The
-matplotlib `h2wb.export.visualize` is a schematic headless fallback only.
+**Mesh visualization (aitviewer).** One-time setup for the SMPL body-mesh render: download
+the official SMPL models (`smpl.is.tue.mpg.de`), then convert + render:
+```
+python -m uv pip install --python .venv --no-build-isolation chumpy   # one-time, for the conversion
+python scripts/clean_smpl_models.py --src .../SMPL_python_v.1.1.0/smpl/models --out .../smpl_models
+python scripts/render_aitviewer.py --cache data/cache/pairs_full.npz \
+    --checkpoint checkpoints/diffusion_full.pt --smpl-models .../smpl_models --out mesh.mp4
+```
+`clean_smpl_models.py` converts the chumpy/numpy-1 release into the `SMPL_{GENDER}.pkl` layout
+smplx/aitviewer expect (and that works under numpy 2.x). The matplotlib `h2wb.export.visualize`
++ `scripts/render_video.py` are a schematic, dependency-light headless fallback (no models needed).
 
 The representation core (`h2wb/representations/`), FK extractor (`h2wb/data/`), the M2
 regressor, the M4 conditional diffusion model + streaming, losses, dataset, and export are

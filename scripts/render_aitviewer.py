@@ -77,6 +77,7 @@ def main():
     seq = _smpl_sequence(poses[:args.max_frames], trans[:args.max_frames], args.gender, args.model_type)
     r = HeadlessRenderer()
     r.scene.add(_table_mesh()); r.scene.add(_net_mesh()); r.scene.add(seq)
+    # aitviewer's default camera auto-frames the scene; orbit interactively for other angles.
     r.save_video(video_dir=args.out, output_fps=args.fps)
     print(f"wrote {args.out}")
 
