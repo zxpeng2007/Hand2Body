@@ -31,8 +31,18 @@ constants come from [`configs/default.yaml`](configs/default.yaml).
 | **M6** domain-gap hardening | ⬜ |
 
 6D rotation convention is **confirmed** = Zhou-2019 columns (`frames.PROJECT_R6D`). The
-regressor trains hand[1..L]→body[1..L] causally; run `python scripts/train.py --synthetic`
-to smoke-test the whole loop without data. Real paired data plugs in via `scripts/extract_amass.py`.
+models train hand[1..L]→body[1..L] causally; run `python scripts/train.py --synthetic` to
+smoke-test the loop without data.
+
+**Real data** (`train.pkl`, joblib, SMPL 22-joint `poses [T,66]` + `trans`):
+```
+python scripts/train.py --pkl train.pkl --arch diffusion --steps 20000   # FK-extracts the 12D internally
+python -m h2wb.export.aitviewer_vis --input train.pkl --seq_idx 0         # view raw data (aitviewer)
+python scripts/generate.py --arch diffusion --checkpoint checkpoints/diffusion.pt --hand H.npy --out out.npz --viz out.png
+python -m h2wb.export.aitviewer_vis --input out.npz                       # view a generated clip
+```
+Visualization is **aitviewer** (real SMPL mesh; needs SMPL model files + a display). The
+matplotlib `h2wb.export.visualize` is a schematic headless fallback only.
 
 The representation core (`h2wb/representations/`), FK extractor (`h2wb/data/`), the M2
 regressor, the M4 conditional diffusion model + streaming, losses, dataset, and export are

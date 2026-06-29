@@ -31,7 +31,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/default.yaml")
     ap.add_argument("--arch", default="regressor", choices=["regressor", "diffusion"])
-    ap.add_argument("--pairs", default="")
+    ap.add_argument("--pkl", default="", help="coworker train.pkl (SMPL) — FK-extracts the 12D")
+    ap.add_argument("--pairs", default="", help="dir of pre-extracted pair_*.npz")
     ap.add_argument("--synthetic", action="store_true")
     ap.add_argument("--steps", type=int, default=2000)
     ap.add_argument("--length", type=int, default=40)
@@ -42,12 +43,16 @@ def main():
     cfg = yaml.safe_load(open(args.config))
     weights = cfg.get("loss", default_loss_weights())
 
-    if args.synthetic or not args.pairs:
-        print("using synthetic self-consistent clips")
-        clips = synthetic_clips(n_clips=16, T=96)
-    else:
+    if args.pkl:
+        from h2wb.data.pkl_loader import pkl_to_clips
+        clips = pkl_to_clips(args.pkl, fps=cfg["frame"]["fps"])
+        print(f"loaded {len(clips)} sequences from {args.pkl}")
+    elif args.pairs:
         clips = load_pairs(args.pairs)
         print(f"loaded {len(clips)} clips from {args.pairs}")
+    else:
+        print("using synthetic self-consistent clips")
+        clips = synthetic_clips(n_clips=16, T=96)
 
     import torch
     device = args.device if torch.cuda.is_available() else "cpu"

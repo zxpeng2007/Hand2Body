@@ -7,6 +7,7 @@ requires-python = ">=3.10,<3.13"
 dependencies = [
     "numpy>=1.24",
     "pyyaml>=6.0",
+    "joblib>=1.3",
 ]
 
 [project.optional-dependencies]
@@ -17,6 +18,11 @@ train = [
     "trimesh>=4.0",
     "tqdm>=4.66",
     "tensorboard>=2.16",
+]
+viz = [
+    "matplotlib>=3.7",   # schematic headless quicklook only
+    "aitviewer>=1.14",   # real SMPL-mesh viewer (needs SMPL model files + display)
+    "trimesh>=4.0",
 ]
 dev = [
     "pytest>=8.0",
