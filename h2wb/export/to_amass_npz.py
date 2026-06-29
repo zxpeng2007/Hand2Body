@@ -46,6 +46,47 @@ def smpl_motion_to_amass_npz(
     return path
 
 
+def smpl_motion_to_smplx_npz(
+    path: str,
+    poses_aa: np.ndarray,           # (T, 72) SMPL axis-angle [global_orient(3) | body_pose(69)]
+    trans: np.ndarray,              # (T, 3) world-frame pelvis translation, meters
+    betas: np.ndarray,              # (10,) SMPL shape
+    fps: int = 30,
+    gender: str = "neutral",
+    height_m: float | None = None,
+) -> str:
+    """Write a GMR-ready SMPL-X-style .npz (the Stage-3 ingest format).
+
+    GMR's load_smplx_file does NOT read AMASS `poses (T,72)`; it reads
+    {root_orient (T,3), pose_body (T,63), betas (16,), trans (T,3), gender, mocap_frame_rate}.
+    We map our SMPL params directly (our hand joints are already zero, so dropping
+    poses[:,66:72] is lossless). This is the preferred zero-glue path — no separate
+    smpl_to_smplx.py pass needed.
+
+    `betas[0]` drives GMR's auto-scale: human height = 1.66 + 0.1*betas[0], ratio = height/1.8.
+    Pass `height_m` to set betas[0] = (height_m - 1.66)/0.1 (e.g. 1.8 -> betas[0]=1.4); else the
+    padded SMPL betas are used (all-zero -> 1.66 m).
+    """
+    poses_aa = np.asarray(poses_aa, np.float64)
+    trans = np.asarray(trans, np.float64)
+    T = poses_aa.shape[0]
+    assert poses_aa.shape == (T, 72), f"poses must be (T,72), got {poses_aa.shape}"
+    betas16 = np.zeros(16, np.float32)
+    betas16[:10] = np.asarray(betas, np.float64).reshape(-1)[:10]
+    if height_m is not None:
+        betas16[0] = (height_m - 1.66) / 0.1
+    np.savez(
+        path,
+        root_orient=poses_aa[:, 0:3].astype(np.float32),     # (T,3)
+        pose_body=poses_aa[:, 3:66].astype(np.float32),      # (T,63) = 21 body joints
+        betas=betas16,                                       # (16,)
+        trans=trans.astype(np.float32),                      # (T,3)
+        gender=gender,
+        mocap_frame_rate=np.array(fps),
+    )
+    return path
+
+
 def motion6d_to_aa(root_orient_6d: np.ndarray, body_rot6d: np.ndarray) -> np.ndarray:
     """Convert model output (6D root + 6D body joints) to SMPL (T, 72) axis-angle.
 

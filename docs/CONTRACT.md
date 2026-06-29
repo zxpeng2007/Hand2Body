@@ -69,6 +69,13 @@ Plain **SMPL** (rigid wrist is enough — no SMPL-X fingers). AMASS-style `.npz`
   support, minimal foot skating) — HoloMotion tracks root velocity, root height,
   projected gravity, and root-relative key bodies.
 
+**GMR ingest (verified 2026-06-29):** GMR does NOT read `poses (T,72)`. It reads SMPL-X keys
+`{root_orient (T,3), pose_body (T,63), betas (16,), trans (T,3), gender, mocap_frame_rate}`.
+We emit those directly via `h2wb.inference.generate_to_smplx_npz` (preferred zero-glue path) —
+no `smpl_to_smplx.py` pass. `betas[0]` sets the auto-scale (height = 1.66 + 0.1·betas[0]).
+Then: GMR `smplx_to_robot` → G1 `.pkl` → `gmr_to_holomotion` → HoloMotion NPZ (50 fps). Full
+commands + key schemas + G1 29-DoF order in [stage3_runbook.md](stage3_runbook.md).
+
 ## 4. Temporal contract 🔒
 
 - Generation / training canonical rate: **30 Hz** (matches GVHMR/HITTER, AMASS resampled).

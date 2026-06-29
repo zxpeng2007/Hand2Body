@@ -39,9 +39,20 @@ def generate(model, hand12, arch="regressor", diffusion=None, sample_steps=8, de
 
 
 def generate_to_npz(path, model, hand12, betas=None, fps=30, gender="neutral", **kw):
-    """Generate and write the AMASS-style SMPL .npz for GMR/HoloMotion. Returns the path."""
+    """Generate and write the AMASS-style SMPL .npz. Returns the path."""
     from .export.to_amass_npz import smpl_motion_to_amass_npz
     motion = generate(model, hand12, **kw)
     poses72, trans = B.motion_to_smpl72(motion)
     betas = np.zeros(10, np.float32) if betas is None else np.asarray(betas, np.float32)
     return smpl_motion_to_amass_npz(path, poses72, trans, betas, fps=fps, gender=gender)
+
+
+def generate_to_smplx_npz(path, model, hand12, betas=None, fps=30, gender="neutral",
+                          height_m=1.75, **kw):
+    """Generate and write the GMR-ready SMPL-X .npz (Stage-3 ingest). Returns the path."""
+    from .export.to_amass_npz import smpl_motion_to_smplx_npz
+    motion = generate(model, hand12, **kw)
+    poses72, trans = B.motion_to_smpl72(motion)
+    betas = np.zeros(10, np.float32) if betas is None else np.asarray(betas, np.float32)
+    return smpl_motion_to_smplx_npz(path, poses72, trans, betas, fps=fps, gender=gender,
+                                    height_m=height_m)

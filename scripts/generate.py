@@ -31,7 +31,9 @@ def main():
     ap.add_argument("--checkpoint", default="")
     ap.add_argument("--hand", default="")
     ap.add_argument("--synthetic", action="store_true")
-    ap.add_argument("--out", default="generated.npz")
+    ap.add_argument("--out", default="generated.npz", help="AMASS-style SMPL .npz")
+    ap.add_argument("--gmr-out", default="", help="also write a GMR-ready SMPL-X .npz for Stage 3")
+    ap.add_argument("--height", type=float, default=1.75, help="subject height (m) for GMR betas[0] scale")
     ap.add_argument("--viz", default="")
     ap.add_argument("--hidden", type=int, default=256)
     ap.add_argument("--n-layers", type=int, default=4)
@@ -63,6 +65,12 @@ def main():
     path = generate_to_npz(args.out, model, hand, arch=args.arch, diffusion=diffusion,
                            sample_steps=args.steps, device=device)
     print(f"wrote SMPL motion: {path}  (frames={len(hand)})")
+
+    if args.gmr_out:
+        from h2wb.inference import generate_to_smplx_npz
+        gp = generate_to_smplx_npz(args.gmr_out, model, hand, arch=args.arch, diffusion=diffusion,
+                                   sample_steps=args.steps, device=device, height_m=args.height)
+        print(f"wrote GMR-ready SMPL-X: {gp}")
 
     if args.viz:
         from h2wb.export.visualize import plot_skeleton_montage
