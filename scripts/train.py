@@ -39,6 +39,7 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="cap #sequences from --pkl (0 = all)")
     ap.add_argument("--val-frac", type=float, default=0.1, help="held-out fraction (by sequence)")
     ap.add_argument("--eval-every", type=int, default=0, help="run held-out eval every N steps (0=off)")
+    ap.add_argument("--log-every", type=int, default=200, help="print train metrics every N steps")
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--out", default="")
     args = ap.parse_args()
@@ -75,14 +76,14 @@ def main():
     if args.arch == "diffusion":
         model, _diff, history = train_diffusion(train_clips, length=args.length, steps=args.steps,
                                                 device=device, weights=w, rest_joints=rest_joints,
-                                                val_clips=val_clips, eval_every=args.eval_every)
+                                                val_clips=val_clips, eval_every=args.eval_every,
+                                                log_every=args.log_every)
     else:
         model, history = train(train_clips, length=args.length, steps=args.steps, device=device,
                                weights=w, rest_joints=rest_joints,
-                               val_clips=val_clips, eval_every=args.eval_every)
+                               val_clips=val_clips, eval_every=args.eval_every,
+                               log_every=args.log_every)
 
-    for h in history:
-        print(h)
     out = args.out or f"checkpoints/{args.arch}.pt"
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     torch.save(model.state_dict(), out)

@@ -89,7 +89,7 @@ def train(clips, length=40, steps=300, batch_size=64, lr=2e-4, device="cpu",
                     entry.update(evaluate(model, val_clips, length=length, device=device,
                                           arch="regressor", rest_joints=rest_joints))
                     model.train()
-                history.append(entry)
+                history.append(entry); print(entry, flush=True)
             step += 1
             if step >= steps:
                 break
@@ -142,7 +142,7 @@ def train_diffusion(clips, length=40, steps=2000, batch_size=64, lr=2e-4, device
                                           arch="diffusion", diffusion=diff, rest_joints=rest_joints,
                                           sample_steps=sample_steps))
                     model.train()
-                history.append(entry)
+                history.append(entry); print(entry, flush=True)
             step += 1
             if step >= steps:
                 break
