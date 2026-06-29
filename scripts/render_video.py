@@ -35,10 +35,16 @@ def main():
     ap.add_argument("--device", default="cuda")
     args = ap.parse_args()
 
+    args.max_frames = min(args.max_frames, 256)            # model positional budget (single-shot)
     device = args.device if torch.cuda.is_available() else "cpu"
     clips, rest = load_pairs_cache(args.cache)
     _, val = split_clips(clips, val_frac=0.1, seed=0)
-    idx = args.seq if args.seq >= 0 else int(np.argmax([clip_wrist_activity(c) for c in val]))
+    if args.seq >= 0:
+        idx = args.seq
+    else:                                                  # favor clips that are long AND active
+        acts = np.array([clip_wrist_activity(c) for c in val])
+        lens = np.minimum([len(c[0]) for c in val], args.max_frames)
+        idx = int(np.argmax(acts * lens))
     hand, gt_body = val[idx]
     hand, gt_body = hand[:args.max_frames], gt_body[:args.max_frames]
     print(f"val clip {idx}: {hand.shape[0]} frames, wrist activity {clip_wrist_activity((hand, gt_body)):.2f} m/s")
