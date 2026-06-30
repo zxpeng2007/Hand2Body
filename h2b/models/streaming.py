@@ -10,12 +10,22 @@ Two modes:
   * push(hand)            -> emit the single newest body frame (1 DDIM sample / output frame).
   * push_block(hand_blk)  -> append a block of B frames, DDIM-sample the window ONCE, emit the
                              newest B body frames. The sample is amortized over the block, so
-                             per-frame cost drops ~B x -- this is what leaves headroom for the
-                             downstream GMR + HoloMotion stages.
+                             per-frame cost drops ~B x -- the headroom for the downstream
+                             GMR + HoloMotion stages.
 
-Defaults (window=5, block=4) keep the per-block sample tiny; bump `window` for more overlap
-(smoother block seams) or drop `sample_steps` for lower latency. The window is re-sampled each
-step (simple + correct); a KV-cache / block-streaming cache is a later speed pass -- TODO(perf).
+Window/latency/quality (measured, RTX 5080, trained model):
+  * Cost is launch-bound: the per-sample time is ~flat for window 5..32 (~5 ms at ddim=2 warm),
+    so a LARGER window is effectively free. With block=4 that is ~1.2 ms/output-frame (~4% of
+    the 133 ms 4-frame budget at 30 fps).
+  * Quality, though, depends on the window: a very short window is jerky at the block seams
+    (jitter ~12 at w=5 vs ~6 at w=16 vs offline ~3.6); wrist tracking stays tight (~8 mm) until
+    the window grows long enough to re-introduce anchor drift (>~20). Sweet spot ~window=16.
+  * Output smoothing was tried and rejected: a 1-Euro filter on the body lags the extended wrist
+    badly (8 mm -> 100 mm+), and leg-only smoothing barely dents the (whole-body) jitter. The
+    fix is the window size, not a post-filter.
+
+The window is re-sampled each step (simple + correct); a KV-cache / block-streaming cache is a
+later speed pass -- TODO(perf).
 """
 
 from __future__ import annotations
@@ -31,8 +41,8 @@ from ..representations import body as B
 class DiffusionStreamer:
     """Online hand->body generator. push() one frame, or push_block() a block of frames."""
 
-    def __init__(self, model, diffusion, window: int = 5, block: int = 4,
-                 sample_steps: int = 4, device="cpu"):
+    def __init__(self, model, diffusion, window: int = 16, block: int = 4,
+                 sample_steps: int = 2, device="cpu"):
         self.model = model
         self.diff = diffusion
         self.window = window
