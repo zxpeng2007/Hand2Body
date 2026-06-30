@@ -96,3 +96,14 @@ def test_streamer_smoke():
     assert s.push(np.zeros(12, np.float32)) is None      # first frame: no output yet
     out = s.push(np.ones(12, np.float32))
     assert out.shape == (B.MOTION_DIM,) and np.isfinite(out).all()
+
+
+def test_streamer_block():
+    # block streaming: window=5, emit 4 body frames per push (one DDIM sample / block)
+    diff = GaussianDiffusion(num_steps=50)
+    m = DiTDenoiser(hidden=64, n_layers=2).eval()
+    s = DiffusionStreamer(m, diff, window=5, block=4, sample_steps=2)
+    out = s.push_block(np.zeros((4, 12), np.float32))
+    assert out.shape == (4, B.MOTION_DIM) and np.isfinite(out).all()
+    out2 = s.push_block(np.ones((4, 12), np.float32))    # next block, window slides
+    assert out2.shape == (4, B.MOTION_DIM) and np.isfinite(out2).all()
