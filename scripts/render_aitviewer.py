@@ -41,6 +41,10 @@ def main():
     ap.add_argument("--ghost-wrist", action="store_true",
                     help="overlay a translucent sphere at the GT/input wrist (input 12D hand pos)")
     ap.add_argument("--ghost-radius", type=float, default=0.045)
+    ap.add_argument("--stream", action="store_true",
+                    help="generate via the causal streaming path (DiffusionStreamer) not offline")
+    ap.add_argument("--window", type=int, default=16)
+    ap.add_argument("--block", type=int, default=4)
     args = ap.parse_args()
 
     target_frames = int(args.seconds * args.fps) if args.seconds > 0 else args.max_frames
@@ -92,8 +96,13 @@ def main():
         else:
             model = RegressorHand2Body(hidden=256, n_layers=4).to(dev); diff = None
         model.load_state_dict(torch.load(args.checkpoint, map_location=dev))
-        motion = INF.generate_long(model, hand, arch=args.arch, diffusion=diff,
-                                   sample_steps=8, device=dev)
+        if args.stream:
+            motion = INF.generate_stream(model, hand, diffusion=diff, window=args.window,
+                                         block=args.block, sample_steps=2, device=dev)
+            print(f"streaming: window={args.window} block={args.block}")
+        else:
+            motion = INF.generate_long(model, hand, arch=args.arch, diffusion=diff,
+                                       sample_steps=8, device=dev)
         rest_t = None if rest is None else torch.as_tensor(rest, dtype=torch.float32)
         gwp, gwr = FK.left_wrist_pose(torch.tensor(motion)[None], rest_t)
         gen_pos = gwp[0].numpy()

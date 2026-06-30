@@ -66,20 +66,38 @@ def generate_long(model, hand12, chunk=250, overlap=50, **kw):
     return out
 
 
-def generate_to_npz(path, model, hand12, betas=None, fps=30, gender="neutral", **kw):
-    """Generate and write the AMASS-style SMPL .npz. Returns the path."""
+def generate_stream(model, hand12, diffusion, window=16, block=4, sample_steps=2, device="cpu"):
+    """Streaming/online generation via DiffusionStreamer: feed the hand in blocks of `block`,
+    collect the emitted body frames. Causal + block-amortized -- this is the REAL-TIME path
+    (vs generate_long, which is offline single-shot/chunked). hand12 (T,12) world -> (T,135) world."""
+    from .models.streaming import DiffusionStreamer
+    hand12 = np.asarray(hand12, np.float32)
+    st = DiffusionStreamer(model, diffusion, window=window, block=block,
+                           sample_steps=sample_steps, device=device)
+    out = []
+    for i in range(0, len(hand12), block):
+        r = st.push_block(hand12[i:i + block])
+        if r is not None:
+            out.append(r)
+    return np.concatenate(out)[:len(hand12)] if out else np.zeros((0, B.MOTION_DIM), np.float32)
+
+
+def generate_to_npz(path, model, hand12, betas=None, fps=30, gender="neutral", motion=None, **kw):
+    """Write the AMASS-style SMPL .npz. Pass `motion` (T,135) to skip generation (e.g. a streamed
+    motion from generate_stream); otherwise generate() offline. Returns the path."""
     from .export.to_amass_npz import smpl_motion_to_amass_npz
-    motion = generate(model, hand12, **kw)
+    motion = generate(model, hand12, **kw) if motion is None else np.asarray(motion, np.float32)
     poses72, trans = B.motion_to_smpl72(motion)
     betas = np.zeros(10, np.float32) if betas is None else np.asarray(betas, np.float32)
     return smpl_motion_to_amass_npz(path, poses72, trans, betas, fps=fps, gender=gender)
 
 
 def generate_to_smplx_npz(path, model, hand12, betas=None, fps=30, gender="neutral",
-                          height_m=1.75, **kw):
-    """Generate and write the GMR-ready SMPL-X .npz (Stage-3 ingest). Returns the path."""
+                          height_m=1.75, motion=None, **kw):
+    """Write the GMR-ready SMPL-X .npz (Stage-3 ingest). Pass `motion` (T,135) to skip generation
+    (e.g. a streamed motion); otherwise generate() offline. Returns the path."""
     from .export.to_amass_npz import smpl_motion_to_smplx_npz
-    motion = generate(model, hand12, **kw)
+    motion = generate(model, hand12, **kw) if motion is None else np.asarray(motion, np.float32)
     poses72, trans = B.motion_to_smpl72(motion)
     betas = np.zeros(10, np.float32) if betas is None else np.asarray(betas, np.float32)
     return smpl_motion_to_smplx_npz(path, poses72, trans, betas, fps=fps, gender=gender,

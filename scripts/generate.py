@@ -38,11 +38,15 @@ def main():
     ap.add_argument("--hidden", type=int, default=256)
     ap.add_argument("--n-layers", type=int, default=4)
     ap.add_argument("--steps", type=int, default=8)
+    ap.add_argument("--stream", action="store_true",
+                    help="use the causal streaming path (DiffusionStreamer) instead of offline")
+    ap.add_argument("--window", type=int, default=16, help="streaming context window")
+    ap.add_argument("--block", type=int, default=4, help="streaming frames emitted per sample")
     ap.add_argument("--device", default="cuda")
     args = ap.parse_args()
 
     import torch
-    from h2b.inference import generate_to_npz, generate
+    from h2b.inference import generate_to_npz, generate, generate_stream
     device = args.device if torch.cuda.is_available() else "cpu"
 
     if args.synthetic or not args.hand:
@@ -62,21 +66,28 @@ def main():
     if args.checkpoint:
         model.load_state_dict(torch.load(args.checkpoint, map_location=device))
 
-    path = generate_to_npz(args.out, model, hand, arch=args.arch, diffusion=diffusion,
-                           sample_steps=args.steps, device=device)
-    print(f"wrote SMPL motion: {path}  (frames={len(hand)})")
+    if args.stream:
+        if args.arch != "diffusion":
+            raise SystemExit("--stream requires --arch diffusion")
+        motion = generate_stream(model, hand, diffusion=diffusion, window=args.window,
+                                 block=args.block, sample_steps=args.steps, device=device)
+        mode = f"streaming (window={args.window}, block={args.block})"
+    else:
+        motion = generate(model, hand, arch=args.arch, diffusion=diffusion,
+                          sample_steps=args.steps, device=device)
+        mode = "offline"
+
+    path = generate_to_npz(args.out, model, hand, motion=motion)
+    print(f"wrote SMPL motion [{mode}]: {path}  (frames={len(motion)})")
 
     if args.gmr_out:
         from h2b.inference import generate_to_smplx_npz
-        gp = generate_to_smplx_npz(args.gmr_out, model, hand, arch=args.arch, diffusion=diffusion,
-                                   sample_steps=args.steps, device=device, height_m=args.height)
+        gp = generate_to_smplx_npz(args.gmr_out, model, hand, motion=motion, height_m=args.height)
         print(f"wrote GMR-ready SMPL-X: {gp}")
 
     if args.viz:
         from h2b.export.visualize import plot_skeleton_montage
-        motion = generate(model, hand, arch=args.arch, diffusion=diffusion,
-                          sample_steps=args.steps, device=device)
-        plot_skeleton_montage(motion, args.viz, title=f"{args.arch} generated")
+        plot_skeleton_montage(motion, args.viz, title=f"{args.arch} {mode}")
         print(f"wrote viz: {args.viz}")
 
 
