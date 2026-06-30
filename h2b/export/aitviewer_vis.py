@@ -74,6 +74,52 @@ def _wrist_ghost(wrist_trans, radius=0.045, color=(0.95, 0.2, 0.2, 0.6)):
     return m
 
 
+# data is z-up; aitviewer is y-up. This is the same remap meshes.py applies for z_up=True,
+# but RigidBodies/Lines don't support z_up, so we apply it to positions/orientations directly.
+_R_ZUP = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]], np.float32)
+
+
+def _rolling_trail(pos, window):
+    """(T,3) -> (T, window, 3): each frame holds the last `window` positions (a rolling trail)."""
+    T = pos.shape[0]
+    out = np.empty((T, window, 3), np.float32)
+    for t in range(T):
+        seg = pos[max(0, t - window + 1):t + 1]
+        if len(seg) < window:
+            seg = np.concatenate([np.repeat(seg[:1], window - len(seg), 0), seg], 0)
+        out[t] = seg
+    return out
+
+
+def wrist_overlays(gt_pos=None, gt_R=None, gen_pos=None, gen_R=None, n=None,
+                   axis_len=0.09, sphere_r=0.028, trail_w=0.005, trail_window=22):
+    """Renderables for the GT and generated wrist: a colored sphere + an xyz orientation gizmo
+    (x=red,y=green,z=blue arrows) per frame, plus a rolling motion-trail (last `trail_window` frames).
+      GT  wrist -> red sphere,  orange trail.   generated wrist -> cyan sphere, blue trail.
+    pos: (T,3) world; R: (T,3,3) world rotation (axes = columns). Returns a list of renderables."""
+    from aitviewer.renderables.rigid_bodies import RigidBodies
+    from aitviewer.renderables.lines import Lines
+    out = []
+
+    def add(pos, R, sph_color, line_color):
+        if pos is None:
+            return
+        pos = np.asarray(pos, np.float32)[:n]
+        posv = pos @ _R_ZUP.T                                        # -> viewer frame
+        out.append(Lines(_rolling_trail(posv, trail_window), r_base=trail_w, color=line_color,
+                         mode="line_strip", cast_shadow=False))
+        if R is not None:
+            oriv = np.einsum("ij,tjk->tik", _R_ZUP, np.asarray(R, np.float32)[:n])
+            out.append(RigidBodies(posv[:, None], oriv[:, None], radius=sphere_r,
+                                   length=axis_len, color=sph_color))
+        else:
+            out.append(_wrist_ghost(pos, radius=sphere_r, color=sph_color))   # _wrist_ghost re-applies z_up
+
+    add(gt_pos, gt_R, (0.90, 0.15, 0.15, 1.0), (1.0, 0.5, 0.0, 1.0))          # GT: red / orange
+    add(gen_pos, gen_R, (0.10, 0.80, 0.92, 1.0), (0.10, 0.40, 1.0, 1.0))      # gen: cyan / blue
+    return out
+
+
 def _smpl_sequence(poses_aa, trans, gender="neutral", model_type="smpl"):
     """Build an SMPLSequence from (T, >=66) axis-angle + (T,3) trans, padding body to model dim."""
     from aitviewer.models.smpl import SMPLLayer

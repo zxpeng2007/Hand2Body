@@ -24,12 +24,14 @@ from h2b.models import fk_torch as FKt
 from h2b import inference as INF
 from h2b.export.footlock import footlock, foot_skate
 from h2b.representations import body as B
+from h2b.representations import rotations_torch as RT
 
 
-def _wrist_dev_mm(motion, wrist_gt, rest):
-    wp, _ = FKt.left_wrist_pose(torch.tensor(np.asarray(motion, np.float32))[None],
-                               torch.as_tensor(rest, dtype=torch.float32))
-    return float(np.linalg.norm(wp[0].numpy() - wrist_gt, axis=-1).mean() * 1000.0)
+def _gen_wrist(motion, rest):
+    """Generated left-wrist (T,3) world position + (T,3,3) world rotation matrix."""
+    wp, wr = FKt.left_wrist_pose(torch.tensor(np.asarray(motion, np.float32))[None],
+                                 torch.as_tensor(rest, dtype=torch.float32))
+    return wp[0].numpy(), RT.rotation_6d_to_matrix(wr[0]).numpy()
 
 
 def main():
@@ -51,8 +53,9 @@ def main():
     acts = np.array([clip_wrist_activity(c) for c in val])
     elig = np.where(lens >= target)[0]
     idx = int(elig[np.argmax(acts[elig])]) if len(elig) else int(np.argmax(lens))
-    hand = val[idx][0][:target]
-    wrist_gt = np.asarray(hand, np.float32)[:, 0:3]
+    hand = np.asarray(val[idx][0][:target], np.float32)
+    wrist_gt = hand[:, 0:3]
+    wrist_gt_R = RT.rotation_6d_to_matrix(torch.from_numpy(hand[:, 6:12])).numpy()  # GT wrist orient
     print(f"clip {idx}: {len(hand)} frames")
 
     diff = GaussianDiffusion(device=dev)
@@ -72,11 +75,12 @@ def main():
     print(f"\n{'panel':16s} {'wrist dev (mm)':>14s} {'foot-skate (mm/s)':>18s}")
     for name, m in (("baseline", base), ("baselineA", baseA), ("B", bmot)):
         poses, trans = B.motion_to_smpl72(m)
+        gen_pos, gen_R = _gen_wrist(m, rest)
         np.savez(os.path.join(args.out_dir, f"tw_{name}.npz"),
                  poses=np.asarray(poses, np.float32), trans=np.asarray(trans, np.float32),
-                 wrist=wrist_gt)
-        print(f"{name:16s} {_wrist_dev_mm(m, wrist_gt, rest):14.1f} "
-              f"{1000*foot_skate(m, rest_joints=rest):18.1f}")
+                 wrist=wrist_gt, wrist_R=wrist_gt_R, gen_wrist=gen_pos, gen_wrist_R=gen_R)
+        dev = float(np.linalg.norm(gen_pos - wrist_gt, axis=-1).mean() * 1000.0)
+        print(f"{name:16s} {dev:14.1f} {1000*foot_skate(m, rest_joints=rest):18.1f}")
     print(f"\nwrote tw_baseline.npz / tw_baselineA.npz / tw_B.npz to {args.out_dir}")
 
 

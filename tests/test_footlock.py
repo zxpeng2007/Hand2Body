@@ -37,6 +37,16 @@ def test_foot_skate_metric_finite():
     assert np.isfinite(s) and s >= 0.0
 
 
+def test_rolling_trail():
+    from h2b.export.aitviewer_vis import _rolling_trail
+    pos = np.arange(30, dtype=np.float32).reshape(10, 3)
+    tr = _rolling_trail(pos, 4)
+    assert tr.shape == (10, 4, 3)
+    assert np.allclose(tr[:, -1], pos)        # last point of each frame = current position
+    assert np.allclose(tr[0], pos[0])         # early frames padded with the first position
+    assert np.allclose(tr[5], pos[2:6])       # full window once enough history
+
+
 def test_foot_contact_loss_in_compute_losses():
     rng = torch.manual_seed(0)
     pred = torch.randn(2, 16, B.MOTION_DIM)

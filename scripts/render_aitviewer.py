@@ -58,28 +58,33 @@ def main():
         if args.smpl_models:
             C.smplx_models = args.smpl_models
 
-    wrist = None
+    gt_pos = gt_R = gen_pos = gen_R = None
     if args.input:
         d = np.load(args.input, allow_pickle=True)
         poses, trans = np.asarray(d["poses"]), np.asarray(d["trans"])
-        if "wrist" in d:
-            wrist = np.asarray(d["wrist"])
+        gt_pos = np.asarray(d["wrist"]) if "wrist" in d else None
+        gt_R = np.asarray(d["wrist_R"]) if "wrist_R" in d else None
+        gen_pos = np.asarray(d["gen_wrist"]) if "gen_wrist" in d else None
+        gen_R = np.asarray(d["gen_wrist_R"]) if "gen_wrist_R" in d else None
     elif args.cache:
         import torch
         from h2b.data.cache import load_pairs_cache, clip_wrist_activity
         from h2b.eval import split_clips
         from h2b.representations import body as B
+        from h2b.representations import rotations_torch as RT
+        from h2b.models import fk_torch as FK
         from h2b import inference as INF
         from h2b.models.diffusion import DiTDenoiser, GaussianDiffusion
         from h2b.models.regressor import RegressorHand2Body
-        clips, _ = load_pairs_cache(args.cache)
+        clips, rest = load_pairs_cache(args.cache)
         _, val = split_clips(clips, val_frac=0.1, seed=0)
         lens = np.array([len(c[0]) for c in val])
         acts = np.array([clip_wrist_activity(c) for c in val])
         elig = np.where(lens >= target_frames)[0]
         idx = int(elig[np.argmax(acts[elig])]) if len(elig) else int(np.argmax(lens))
-        hand = val[idx][0][:target_frames]
-        wrist = np.asarray(hand)[:, 0:3]
+        hand = np.asarray(val[idx][0][:target_frames], np.float32)
+        gt_pos = hand[:, 0:3]
+        gt_R = RT.rotation_6d_to_matrix(torch.from_numpy(hand[:, 6:12])).numpy()
         print(f"val clip {idx}: {len(hand)} frames, activity {clip_wrist_activity((hand, hand)):.2f} m/s")
         dev = "cuda" if torch.cuda.is_available() else "cpu"
         if args.arch == "diffusion":
@@ -89,21 +94,27 @@ def main():
         model.load_state_dict(torch.load(args.checkpoint, map_location=dev))
         motion = INF.generate_long(model, hand, arch=args.arch, diffusion=diff,
                                    sample_steps=8, device=dev)
+        rest_t = None if rest is None else torch.as_tensor(rest, dtype=torch.float32)
+        gwp, gwr = FK.left_wrist_pose(torch.tensor(motion)[None], rest_t)
+        gen_pos = gwp[0].numpy()
+        gen_R = RT.rotation_6d_to_matrix(gwr[0]).numpy()
         poses, trans = B.motion_to_smpl72(motion)
     else:
         raise SystemExit("pass --input <npz> or --cache <npz> + --checkpoint")
 
     poses, trans = poses[:target_frames], trans[:target_frames]
     from aitviewer.headless import HeadlessRenderer
-    from h2b.export.aitviewer_vis import _table_mesh, _net_mesh, _smpl_sequence, _wrist_ghost
+    from h2b.export.aitviewer_vis import _table_mesh, _net_mesh, _smpl_sequence, wrist_overlays
     seq = _smpl_sequence(poses, trans, args.gender, args.model_type)
     r = HeadlessRenderer()
     r.scene.add(_table_mesh()); r.scene.add(_net_mesh()); r.scene.add(seq)
     if args.ghost_wrist:
-        if wrist is None:
-            print("--ghost-wrist requested but no wrist trajectory available (npz lacks 'wrist')")
-        else:
-            r.scene.add(_wrist_ghost(wrist[:target_frames], radius=args.ghost_radius))
+        ov = wrist_overlays(gt_pos=gt_pos, gt_R=gt_R, gen_pos=gen_pos, gen_R=gen_R,
+                            n=target_frames, sphere_r=args.ghost_radius)
+        if not ov:
+            print("--ghost-wrist requested but no wrist data available")
+        for node in ov:
+            r.scene.add(node)
     # elevated, pulled-back camera (viewer frame: y up, z = -table width)
     try:
         c = r.scene.camera
