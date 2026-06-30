@@ -38,6 +38,9 @@ def main():
     ap.add_argument("--cam-height", type=float, default=5.0)
     ap.add_argument("--cam-dist", type=float, default=7.5)
     ap.add_argument("--cam-target-x", type=float, default=-0.3, help="center between player(~-2) and table(0)")
+    ap.add_argument("--ghost-wrist", action="store_true",
+                    help="overlay a translucent sphere at the GT/input wrist (input 12D hand pos)")
+    ap.add_argument("--ghost-radius", type=float, default=0.045)
     args = ap.parse_args()
 
     target_frames = int(args.seconds * args.fps) if args.seconds > 0 else args.max_frames
@@ -55,9 +58,12 @@ def main():
         if args.smpl_models:
             C.smplx_models = args.smpl_models
 
+    wrist = None
     if args.input:
         d = np.load(args.input, allow_pickle=True)
         poses, trans = np.asarray(d["poses"]), np.asarray(d["trans"])
+        if "wrist" in d:
+            wrist = np.asarray(d["wrist"])
     elif args.cache:
         import torch
         from h2b.data.cache import load_pairs_cache, clip_wrist_activity
@@ -73,6 +79,7 @@ def main():
         elig = np.where(lens >= target_frames)[0]
         idx = int(elig[np.argmax(acts[elig])]) if len(elig) else int(np.argmax(lens))
         hand = val[idx][0][:target_frames]
+        wrist = np.asarray(hand)[:, 0:3]
         print(f"val clip {idx}: {len(hand)} frames, activity {clip_wrist_activity((hand, hand)):.2f} m/s")
         dev = "cuda" if torch.cuda.is_available() else "cpu"
         if args.arch == "diffusion":
@@ -88,10 +95,15 @@ def main():
 
     poses, trans = poses[:target_frames], trans[:target_frames]
     from aitviewer.headless import HeadlessRenderer
-    from h2b.export.aitviewer_vis import _table_mesh, _net_mesh, _smpl_sequence
+    from h2b.export.aitviewer_vis import _table_mesh, _net_mesh, _smpl_sequence, _wrist_ghost
     seq = _smpl_sequence(poses, trans, args.gender, args.model_type)
     r = HeadlessRenderer()
     r.scene.add(_table_mesh()); r.scene.add(_net_mesh()); r.scene.add(seq)
+    if args.ghost_wrist:
+        if wrist is None:
+            print("--ghost-wrist requested but no wrist trajectory available (npz lacks 'wrist')")
+        else:
+            r.scene.add(_wrist_ghost(wrist[:target_frames], radius=args.ghost_radius))
     # elevated, pulled-back camera (viewer frame: y up, z = -table width)
     try:
         c = r.scene.camera

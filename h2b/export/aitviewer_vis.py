@@ -59,6 +59,21 @@ def _ball_mesh(ball_trans, radius=0.02):
     return m
 
 
+def _wrist_ghost(wrist_trans, radius=0.045, color=(0.95, 0.2, 0.2, 0.6)):
+    """Translucent sphere following a (T,3) world wrist trajectory — the ground-truth/target
+    wrist (the input 12D hand position). Overlay on a generated body to see wrist deviation."""
+    import trimesh
+    from aitviewer.renderables.meshes import Meshes
+    sphere = trimesh.creation.icosphere(subdivisions=2, radius=radius)
+    wt = np.asarray(wrist_trans, np.float32)
+    tf = np.tile(np.eye(4, dtype=np.float32), (wt.shape[0], 1, 1))
+    tf[:, :3, 3] = wt
+    m = Meshes(vertices=sphere.vertices, faces=sphere.faces,
+               instance_transforms=tf[:, None], z_up=True)
+    m.color = color
+    return m
+
+
 def _smpl_sequence(poses_aa, trans, gender="neutral", model_type="smpl"):
     """Build an SMPLSequence from (T, >=66) axis-angle + (T,3) trans, padding body to model dim."""
     from aitviewer.models.smpl import SMPLLayer
