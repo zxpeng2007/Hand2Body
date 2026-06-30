@@ -108,18 +108,22 @@ if _HAS_TORCH:
 
         @torch.no_grad()
         def ddim_sample(self, model, shape, hand, steps: int = 8, device="cpu"):
-            """Deterministic DDIM (eta=0). Returns x0_hat (shape)."""
+            """Deterministic DDIM (eta=0). Returns x0_hat (shape).
+
+            Stays fully on-device: the timestep is broadcast from `ts` (no int(t) host sync),
+            so the CPU can queue every step's kernels without stalling -- the win in the
+            launch-bound streaming regime (no Triton / CUDA-graph needed)."""
             x = torch.randn(shape, device=device)
             ts = torch.linspace(self.num_steps - 1, 0, steps, device=device).round().long()
+            zero = torch.zeros((), device=device, dtype=torch.long)
             x0_hat = x
             for i in range(steps):
                 t = ts[i]
-                tb = torch.full((shape[0],), int(t), device=device, dtype=torch.long)
+                tb = ts[i:i + 1].expand(shape[0])              # (B,) device, no host sync
                 x0_hat = model(x, tb, hand)
                 acp_t = self.acp[t]
                 eps = (x - acp_t.sqrt() * x0_hat) / (1.0 - acp_t).sqrt().clamp_min(1e-8)
-                t_next = ts[i + 1] if i + 1 < steps else torch.tensor(0, device=device)
-                acp_n = self.acp[t_next]
+                acp_n = self.acp[ts[i + 1] if i + 1 < steps else zero]
                 x = acp_n.sqrt() * x0_hat + (1.0 - acp_n).sqrt() * eps
             return x0_hat
 

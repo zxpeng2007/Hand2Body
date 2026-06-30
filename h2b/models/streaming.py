@@ -24,8 +24,17 @@ Window/latency/quality (measured, RTX 5080, trained model):
     badly (8 mm -> 100 mm+), and leg-only smoothing barely dents the (whole-body) jitter. The
     fix is the window size, not a post-filter.
 
-The window is re-sampled each step (simple + correct); a KV-cache / block-streaming cache is a
-later speed pass -- TODO(perf).
+Speed pass (investigated 2026-06-30, RTX 5080 laptop / torch 2.11 / Windows):
+  * The streamer is LAUNCH-bound -- per-sample time is ~flat for window 5..32 -- so a classic
+    KV-cache (which cuts attention FLOPs) would NOT help. The realized win is the block emission
+    above (one DDIM sample serves B frames -> ~B x fewer samples).
+  * The launch-overhead killers are blocked on THIS stack: torch.compile(reduce-overhead) needs
+    Triton (absent on Windows), and CUDA-graph capture of nn.TransformerEncoder is rejected
+    (cudaErrorStreamCaptureInvalidated, even a single forward). Both are viable on a Linux deploy
+    (the robot target), so they stay as deploy-time options, not code here.
+  * ddim_sample was made host-sync-free (no int(t) per step) so it pipelines and is graph/compile
+    -capturable where those work. On this box each push is already ~5 ms (ddim=2) = ~4% of the
+    133 ms block budget, i.e. ~96% headroom -- at the practical hardware floor.
 """
 
 from __future__ import annotations
