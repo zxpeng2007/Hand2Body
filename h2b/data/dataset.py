@@ -75,8 +75,9 @@ def canonicalize_window(hand_w: np.ndarray, body_w: np.ndarray):
     from ..representations import body as Bd
     hand_w = np.asarray(hand_w, np.float32).copy()
     body_w = np.asarray(body_w, np.float32).copy()
-    anchor = hand_w[..., 0:1, F.HAND12_POS].copy()           # (..., 1, 3) hand pos at t0
-    hand_w[..., F.HAND12_POS] -= anchor
+    anchor = hand_w[..., 0:1, 0:3].copy()                    # (..., 1, 3) FIRST wrist pos at t0
+    for s in F.hand_pos_slices(hand_w.shape[-1]):            # shift every wrist's position block
+        hand_w[..., s] -= anchor
     body_w[..., Bd.B_TRANS] -= anchor
     return hand_w, body_w, anchor[..., 0, :]
 

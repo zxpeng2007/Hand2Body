@@ -60,13 +60,28 @@ def motion_to_joints(motion, rest_joints=None, parents=B.BODY_PARENTS):
     return forward_kinematics(local_R, trans, rest_joints, parents)
 
 
-def left_wrist_pose(motion, rest_joints=None):
-    """(..., 135) -> (pos (...,3), rot6d (...,6)) of the GLOBAL left wrist (joint 20).
-
-    These are exactly the quantities compared against the input 12D in the
-    hand-consistency loss.
-    """
-    from ..representations.frames import LEFT_WRIST  # == 20, inside the 22-joint subtree
+def wrist_pose(motion, joint, rest_joints=None):
+    """(..., 135) -> (pos (...,3), rot6d (...,6)) of the GLOBAL wrist `joint` (20=left, 21=right)."""
     gR, pos = motion_to_joints(motion, rest_joints)
-    wrist_R = gR[..., LEFT_WRIST, :, :]
-    return pos[..., LEFT_WRIST, :], RT.matrix_to_rotation_6d(wrist_R)
+    return pos[..., joint, :], RT.matrix_to_rotation_6d(gR[..., joint, :, :])
+
+
+def left_wrist_pose(motion, rest_joints=None):
+    """GLOBAL left wrist (joint 20) — compared against the input 12D in the hand-consistency loss."""
+    from ..representations.frames import LEFT_WRIST     # == 20, inside the 22-joint subtree
+    return wrist_pose(motion, LEFT_WRIST, rest_joints)
+
+
+def right_wrist_pose(motion, rest_joints=None):
+    """GLOBAL right wrist (joint 21) — the 2-wrist (bimanual) consistency target."""
+    from ..representations.frames import RIGHT_WRIST
+    return wrist_pose(motion, RIGHT_WRIST, rest_joints)
+
+
+def wrists_pose(motion, joints, rest_joints=None):
+    """N-wrist consistency helper: (..., 135), joints=(20,) or (20,21) ->
+    (pos (...,K,3), rot6d (...,K,6)) for the K tracked wrists, one FK pass."""
+    gR, pos = motion_to_joints(motion, rest_joints)
+    p = torch.stack([pos[..., j, :] for j in joints], dim=-2)
+    r = torch.stack([RT.matrix_to_rotation_6d(gR[..., j, :, :]) for j in joints], dim=-2)
+    return p, r

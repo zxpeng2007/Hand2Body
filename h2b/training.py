@@ -37,9 +37,9 @@ def default_loss_weights():
     return dict(trans=1.0, rot6d=1.0, velocity=0.5, fk_joint=1.0, hand_consistency=2.0)
 
 
-def build_model(hidden=256, n_layers=4, n_heads=8):
+def build_model(hidden=256, n_layers=4, n_heads=8, hand_dim=12):
     from .models.regressor import RegressorHand2Body
-    return RegressorHand2Body(hidden=hidden, n_layers=n_layers, n_heads=n_heads)
+    return RegressorHand2Body(hidden=hidden, n_layers=n_layers, n_heads=n_heads, hand_dim=hand_dim)
 
 
 def _rest_tensor(rest_joints, device):
@@ -51,7 +51,7 @@ def _rest_tensor(rest_joints, device):
 
 def train(clips, length=40, steps=300, batch_size=64, lr=2e-4, device="cpu",
           weights=None, log_every=50, hidden=256, n_layers=4, seed=0, rest_joints=None,
-          val_clips=None, eval_every=0):
+          val_clips=None, eval_every=0, hand_dim=12):
     """Train the regressor on (hand, body) clips. Returns (model, history list of dicts).
 
     `rest_joints` (22,3): calibrated FK rest skeleton (from pkl_loader.calibrate_rest_joints)
@@ -69,7 +69,7 @@ def train(clips, length=40, steps=300, batch_size=64, lr=2e-4, device="cpu",
         raise ValueError("no training windows — clips shorter than `length`?")
     dl = DataLoader(ds, batch_size=min(batch_size, len(ds)), shuffle=True, drop_last=False)
 
-    model = build_model(hidden=hidden, n_layers=n_layers).to(device)
+    model = build_model(hidden=hidden, n_layers=n_layers, hand_dim=hand_dim).to(device)
     rest = _rest_tensor(rest_joints, device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr)
 
@@ -98,7 +98,7 @@ def train(clips, length=40, steps=300, batch_size=64, lr=2e-4, device="cpu",
 
 def train_diffusion(clips, length=40, steps=2000, batch_size=64, lr=2e-4, device="cpu",
                     weights=None, log_every=50, hidden=256, n_layers=4, num_steps=1000, seed=0,
-                    rest_joints=None, val_clips=None, eval_every=0, sample_steps=8):
+                    rest_joints=None, val_clips=None, eval_every=0, sample_steps=8, hand_dim=12):
     """Train the M4 conditional diffusion model (DiTDenoiser). Returns (model, diffusion, history).
 
     Per step: noise the GT body to a random diffusion time, denoise it conditioned on the
@@ -118,7 +118,7 @@ def train_diffusion(clips, length=40, steps=2000, batch_size=64, lr=2e-4, device
         raise ValueError("no training windows — clips shorter than `length`?")
     dl = DataLoader(ds, batch_size=min(batch_size, len(ds)), shuffle=True, drop_last=False)
 
-    model = DiTDenoiser(hidden=hidden, n_layers=n_layers).to(device)
+    model = DiTDenoiser(hidden=hidden, n_layers=n_layers, hand_dim=hand_dim).to(device)
     diff = GaussianDiffusion(num_steps=num_steps, device=device)
     rest = _rest_tensor(rest_joints, device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr)

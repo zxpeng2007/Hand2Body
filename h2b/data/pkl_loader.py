@@ -97,17 +97,20 @@ def _poses_to_72(poses: np.ndarray) -> np.ndarray:
     return out
 
 
-def sequence_to_pair(seq: dict, fps: float = 30.0):
-    """One sequence -> (hand12 (T,12), body (T,135)). Uses REAL joints for the wrist position."""
+def sequence_to_pair(seq: dict, fps: float = 30.0, wrists=(F.LEFT_WRIST,)):
+    """One sequence -> (hand (T, 12*len(wrists)), body (T,135)), REAL joints for wrist positions.
+    `wrists=(LEFT_WRIST,)` -> 12D (table tennis); `(LEFT_WRIST, RIGHT_WRIST)` -> 24D (bimanual)."""
     poses72 = _poses_to_72(seq["poses"])
     trans = seq["trans"]
-    if seq.get("joints") is not None:
-        pos = np.asarray(seq["joints"])[:, F.LEFT_WRIST, :]        # real world wrist position
-    else:
-        pos = FK.synthetic_joints_fn(poses72, trans, seq["betas"])[:, F.LEFT_WRIST, :]
-    vel = F.finite_diff_velocity(pos, fps)
-    rot6d = FK.wrist_orientation_6d(poses72)                       # global, column convention
-    hand = F.pack_hand12(pos, vel, rot6d)
+    joints = (np.asarray(seq["joints"]) if seq.get("joints") is not None
+              else FK.synthetic_joints_fn(poses72, trans, seq["betas"]))   # (T, 24, 3) world
+    blocks = []
+    for j in wrists:
+        pos = joints[:, j, :]                                      # real world wrist position
+        vel = F.finite_diff_velocity(pos, fps)
+        rot6d = FK.wrist_orientation_6d(poses72, joint=j)          # global, column convention
+        blocks.append(F.pack_hand12(pos, vel, rot6d))
+    hand = np.concatenate(blocks, axis=-1)
     body = B.smpl72_to_motion(poses72, trans)
     return hand.astype(np.float32), body.astype(np.float32)
 
@@ -135,15 +138,15 @@ def calibrate_rest_joints(poses72: np.ndarray, joints: np.ndarray, trans: np.nda
 
 
 def load_clips(path: str, fps: float = 30.0, limit: int | None = None, min_frames: int = 8,
-               calibrate: bool = True, calib_seqs: int = 16):
-    """Load train.pkl -> (clips, rest_joints). clips = list of (hand12, body); rest_joints (22,3)
-    calibrated from the real joints (or None if unavailable)."""
+               calibrate: bool = True, calib_seqs: int = 16, wrists=(F.LEFT_WRIST,)):
+    """Load train.pkl -> (clips, rest_joints). clips = list of (hand, body); rest_joints (22,3)
+    calibrated from the real joints (or None if unavailable). `wrists` selects 1- vs 2-wrist input."""
     payload = load_smpl_pkl(path)
     clips, rests = [], []
     for seq in iter_sequences(payload):
         if seq["poses"].shape[0] < min_frames:
             continue
-        clips.append(sequence_to_pair(seq, fps=fps))
+        clips.append(sequence_to_pair(seq, fps=fps, wrists=wrists))
         if calibrate and seq.get("joints") is not None and len(rests) < calib_seqs:
             rests.append(calibrate_rest_joints(_poses_to_72(seq["poses"]),
                                                seq["joints"], seq["trans"]))

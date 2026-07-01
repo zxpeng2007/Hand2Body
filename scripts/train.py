@@ -36,7 +36,9 @@ def main():
     ap.add_argument("--drop-labels", default="", help="comma act_cat to DROP")
     ap.add_argument("--top-activity-frac", type=float, default=0.0,
                     help="keep only the most wrist-active fraction (0=off); proxy for striking motions")
-    ap.add_argument("--pkl", default="", help="upstream train.pkl (SMPL) — FK-extracts the 12D")
+    ap.add_argument("--pkl", default="", help="upstream train.pkl (SMPL) — FK-extracts the 12D/24D")
+    ap.add_argument("--wrist-count", type=int, default=0,
+                    help="1 (left paddle) or 2 (bimanual); 0 = use config hand_signal.wrist_count")
     ap.add_argument("--pairs", default="", help="dir of pre-extracted pair_*.npz")
     ap.add_argument("--synthetic", action="store_true")
     ap.add_argument("--steps", type=int, default=2000)
@@ -51,6 +53,9 @@ def main():
 
     cfg = yaml.safe_load(open(args.config))
     weights = cfg.get("loss", default_loss_weights())
+    from h2b.representations import frames as F
+    wrist_count = args.wrist_count or int(cfg.get("hand_signal", {}).get("wrist_count", 1))
+    wrists = F.WRIST_JOINTS[:wrist_count]
 
     rest_joints = None
     if args.cache:
@@ -66,7 +71,7 @@ def main():
     elif args.pkl:
         from h2b.data.pkl_loader import load_clips
         clips, rest_joints = load_clips(args.pkl, fps=cfg["frame"]["fps"],
-                                        limit=(args.limit or None))
+                                        limit=(args.limit or None), wrists=wrists)
         print(f"loaded {len(clips)} sequences from {args.pkl}; "
               f"rest_joints {'calibrated' if rest_joints is not None else 'approx'}")
     elif args.pairs:
@@ -96,16 +101,19 @@ def main():
     else:
         train_clips, val_clips = clips, None
 
+    hand_dim = int(np.asarray(train_clips[0][0]).shape[-1]) if train_clips else 12 * wrist_count
+    print(f"wrist_count={wrist_count}  hand_dim={hand_dim}  (12 = 1 wrist, 24 = bimanual)")
+
     if args.arch == "diffusion":
         model, _diff, history = train_diffusion(train_clips, length=args.length, steps=args.steps,
                                                 device=device, weights=w, rest_joints=rest_joints,
                                                 val_clips=val_clips, eval_every=args.eval_every,
-                                                log_every=args.log_every)
+                                                log_every=args.log_every, hand_dim=hand_dim)
     else:
         model, history = train(train_clips, length=args.length, steps=args.steps, device=device,
                                weights=w, rest_joints=rest_joints,
                                val_clips=val_clips, eval_every=args.eval_every,
-                               log_every=args.log_every)
+                               log_every=args.log_every, hand_dim=hand_dim)
 
     out = args.out or f"checkpoints/{args.arch}.pt"
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)

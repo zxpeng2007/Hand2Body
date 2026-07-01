@@ -141,6 +141,74 @@ def decanonicalize_hand12(h: np.ndarray, anchor_xyz: np.ndarray) -> np.ndarray:
     return h
 
 
+# --------------------------------------------------------------------------- #
+# N-WRIST generalization (v1: two wrists, 24D) — the sparse-tracking->full-body
+# paradigm with more end-effectors (e.g. bimanual table manipulation). A 24D signal
+# is two 12D blocks [left(12) | right(12)]. The 1-wrist (12D) path stays byte-identical.
+# --------------------------------------------------------------------------- #
+WRIST_JOINTS = (LEFT_WRIST, RIGHT_WRIST)     # SMPL joints tracked, in signal-block order
+HAND24_DIM = 24
+
+
+def hand_dim_for(wrist_count: int) -> int:
+    """Signal width for a given number of tracked wrists (12 per wrist)."""
+    return HAND12_DIM * wrist_count
+
+
+def wrist_count_of(h) -> int:
+    """#wrists encoded in a signal (accepts the array or just its last-dim size)."""
+    dim = h if isinstance(h, int) else np.asarray(h).shape[-1]
+    return dim // HAND12_DIM
+
+
+def hand_pos_slices(dim: int) -> list:
+    """The position sub-slice of each wrist block inside a (12*N)-D signal."""
+    return [slice(HAND12_DIM * k, HAND12_DIM * k + 3) for k in range(dim // HAND12_DIM)]
+
+
+def pack_hand24(hand_left12: np.ndarray, hand_right12: np.ndarray) -> np.ndarray:
+    """Concatenate two 12D wrist signals -> 24D [left | right]."""
+    return np.concatenate([np.asarray(hand_left12, np.float64),
+                           np.asarray(hand_right12, np.float64)], axis=-1)
+
+
+def unpack_hand24(h: np.ndarray):
+    """(..., 24) -> (left12, right12)."""
+    h = np.asarray(h, np.float64)
+    return h[..., :HAND12_DIM], h[..., HAND12_DIM:2 * HAND12_DIM]
+
+
+def canonicalize_hand(h: np.ndarray, anchor_xyz: np.ndarray | None = None,
+                      mode: str = "root_relative_pos"):
+    """N-wrist canonicalization: subtract ONE anchor from EVERY wrist's position block,
+    leaving velocity/orientation global (module docstring). Works for 12D or 24D and is
+    byte-identical to `canonicalize_hand12` when N=1. The anchor defaults to the FIRST
+    wrist's first-frame position; for 2-wrist prefer passing a FIXED play-area origin and
+    reusing the SAME anchor across dataset/inference/streaming (CONTRACT §5)."""
+    h = np.asarray(h, np.float64).copy()
+    if mode == "none":
+        return h, np.zeros(3)
+    if mode == "root_relative_pos":
+        slices = hand_pos_slices(h.shape[-1])
+        if anchor_xyz is None:
+            base = h[..., 0, :] if h.ndim > 1 else h
+            anchor_xyz = base[..., slices[0]]
+        anchor_xyz = np.array(anchor_xyz, np.float64)
+        for s in slices:
+            h[..., s] = h[..., s] - anchor_xyz
+        return h, anchor_xyz
+    raise ValueError(f"unknown canonicalization mode: {mode!r}")
+
+
+def decanonicalize_hand(h: np.ndarray, anchor_xyz: np.ndarray) -> np.ndarray:
+    """Undo `canonicalize_hand` (shifts every wrist's position block back to world)."""
+    h = np.asarray(h, np.float64).copy()
+    anchor_xyz = np.asarray(anchor_xyz, np.float64)
+    for s in hand_pos_slices(h.shape[-1]):
+        h[..., s] = h[..., s] + anchor_xyz
+    return h
+
+
 def global_orientation_6d(R_global_wrist: np.ndarray) -> np.ndarray:
     """Helper: world-frame wrist rotation matrix -> the 6D stored in the 12D vector."""
     return matrix_to_rotation_6d(R_global_wrist, convention=PROJECT_R6D)

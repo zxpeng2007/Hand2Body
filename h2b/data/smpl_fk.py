@@ -86,6 +86,24 @@ def extract_hand12(
     return np.concatenate([pos, vel, rot6d], axis=-1)
 
 
+def extract_hand_bilateral(
+    poses: np.ndarray,
+    trans: np.ndarray,
+    betas: np.ndarray,
+    joints_fn: JointsFn,
+    fps: float = 30.0,
+    wrists=F.WRIST_JOINTS,
+    convention: str = F.PROJECT_R6D,
+) -> np.ndarray:
+    """N-wrist signal (T, 12*len(wrists)) by concatenating `extract_hand12` per tracked wrist.
+    Default `wrists=(LEFT_WRIST, RIGHT_WRIST)` -> the 24D bimanual signal; pass `(LEFT_WRIST,)`
+    for the 1-wrist 12D signal. This is the M1 bootstrap for the 2-wrist manipulation setting:
+    FK-derive the input from whole-body mocap so cycle-consistency validates it."""
+    blocks = [extract_hand12(poses, trans, betas, joints_fn, fps=fps, joint=j, convention=convention)
+              for j in wrists]
+    return np.concatenate(blocks, axis=-1)
+
+
 # --------------------------------------------------------------------------- #
 # joints_fn adapters
 # --------------------------------------------------------------------------- #

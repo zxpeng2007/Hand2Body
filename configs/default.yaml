@@ -14,7 +14,8 @@ representation:
   num_betas: 10
 
 hand_signal:
-  dim: 12                      # [pos(3) | lin_vel(3) | rot6d(6)]
+  wrist_count: 1               # 1 = left-wrist paddle (table tennis); 2 = both wrists (bimanual manip)
+  dim: 12                      # per-wrist [pos(3) | lin_vel(3) | rot6d(6)]; model input = dim*wrist_count
   canonicalize: root_relative_pos   # none | root_relative_pos  (orientation stays global)
 
 window:

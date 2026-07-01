@@ -72,10 +72,14 @@ def compute_losses(pred_motion, gt_motion, hand, weights, rest_joints=None, fps=
             parts["foot_contact"] = foot_contact_loss(pred_pos, gt_pos, fps=fps)
 
     if weights.get("hand_consistency", 0.0) > 0:
-        wrist_pos, wrist_rot6d = FK.left_wrist_pose(pred_motion, rest_joints)
-        tgt_pos = hand[..., 0:3]
-        tgt_rot = hand[..., 6:12]
-        parts["hand_consistency"] = Fn.mse_loss(wrist_pos, tgt_pos) + Fn.mse_loss(wrist_rot6d, tgt_rot)
+        # N-wrist: FK each tracked wrist (20=left, 21=right) and match its 12D block. N=1 is
+        # byte-identical to the single-left-wrist term; N=2 adds the right-wrist (bimanual) term.
+        n = F.wrist_count_of(hand)
+        joints = F.WRIST_JOINTS[:n]
+        wp, wr = FK.wrists_pose(pred_motion, joints, rest_joints)                       # (...,n,3),(...,n,6)
+        tgt_pos = torch.stack([hand[..., 12 * k:12 * k + 3] for k in range(n)], dim=-2)   # (...,n,3)
+        tgt_rot = torch.stack([hand[..., 12 * k + 6:12 * k + 12] for k in range(n)], dim=-2)
+        parts["hand_consistency"] = Fn.mse_loss(wp, tgt_pos) + Fn.mse_loss(wr, tgt_rot)
 
     total = sum(weights.get(k, 0.0) * v for k, v in parts.items())
     return total, parts
