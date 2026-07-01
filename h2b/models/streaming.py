@@ -67,10 +67,11 @@ class DiffusionStreamer:
     def _sample_window(self):
         """DDIM-sample the buffered window -> (L,135) world body for the whole window."""
         import torch
-        hand = np.stack(self._hand)[None]                       # (1, L, 12)
-        anchor = hand[:, 0:1, F.HAND12_POS].copy()              # (1,1,3) inference anchor
+        hand = np.stack(self._hand)[None]                       # (1, L, 12*N)
+        anchor = hand[:, 0:1, 0:3].copy()                       # (1,1,3) first-wrist anchor
         hand_c = hand.copy()
-        hand_c[..., F.HAND12_POS] -= anchor
+        for s in F.hand_pos_slices(hand.shape[-1]):             # shift every wrist's position block
+            hand_c[..., s] -= anchor
         ht = torch.from_numpy(hand_c).to(self.device)
         body = self.diff.ddim_sample(self.model, (1, ht.shape[1], B.MOTION_DIM), ht,
                                      steps=self.sample_steps, device=self.device).cpu().numpy()[0]

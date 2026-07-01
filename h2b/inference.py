@@ -22,9 +22,10 @@ def generate(model, hand12, arch="regressor", diffusion=None, sample_steps=8, de
     if T > max_len:
         raise ValueError(f"sequence length {T} exceeds model positional budget {max_len}; "
                          "use h2b.models.streaming.DiffusionStreamer for long/online sequences")
-    anchor = hand[0:1, F.HAND12_POS].copy()                 # (1,3) inference anchor
+    anchor = hand[0:1, 0:3].copy()                          # (1,3) first-wrist inference anchor
     hand_c = hand.copy()
-    hand_c[:, F.HAND12_POS] -= anchor
+    for s in F.hand_pos_slices(hand.shape[-1]):             # shift every wrist's position block
+        hand_c[:, s] -= anchor
     ht = torch.from_numpy(hand_c)[None].to(device)          # (1,T,12)
     model.eval()
     with torch.no_grad():
