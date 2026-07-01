@@ -85,20 +85,28 @@ def _load_vtemplate(vtemplate_dir: str, sid: str):
 def smplx_joints_fn_factory(model_dir: str, gender: str = "neutral", v_template=None, num_betas: int = 10):
     """joints_fn (poses72, trans, betas) -> (T,24,3) world via the real SMPL-X model. `gender` and the
     personalized `v_template` (10475x3, overrides betas) are baked in per subject (as ARCTIC does).
+    The model is built ONCE here and reused across that subject's sequences (variable batch at call).
     `model_dir` contains `smplx/SMPLX_<GENDER>.{npz,pkl}` (e.g. repo assets/models)."""
+    import torch
+    import smplx
+    kw = dict(model_type="smplx", gender=gender, num_betas=num_betas, use_pca=False)
+    if v_template is not None:
+        kw["v_template"] = torch.tensor(np.asarray(v_template), dtype=torch.float32)
+    model = smplx.create(model_dir, **kw)
+
+    n_exp = int(getattr(model, "num_expression_coeffs", 10))
+
     def _fn(poses, trans, betas):
-        import torch
-        import smplx
         T = poses.shape[0]
-        kw = dict(model_type="smplx", gender=gender, num_betas=num_betas, use_pca=False, batch_size=T)
-        if v_template is not None:
-            kw["v_template"] = torch.tensor(np.asarray(v_template), dtype=torch.float32)
-        model = smplx.create(model_dir, **kw)
         b = np.broadcast_to(np.asarray(betas).reshape(-1)[:num_betas], (T, num_betas)).copy()
-        out = model(global_orient=torch.tensor(poses[:, 0:3], dtype=torch.float32),
-                    body_pose=torch.tensor(poses[:, 3:66], dtype=torch.float32),
-                    transl=torch.tensor(trans, dtype=torch.float32),
-                    betas=torch.tensor(b, dtype=torch.float32))
+        z = lambda d: torch.zeros(T, d)                          # all face/hand params at batch T
+        with torch.no_grad():
+            out = model(global_orient=torch.tensor(poses[:, 0:3], dtype=torch.float32),
+                        body_pose=torch.tensor(poses[:, 3:66], dtype=torch.float32),
+                        transl=torch.tensor(trans, dtype=torch.float32),
+                        betas=torch.tensor(b, dtype=torch.float32),
+                        jaw_pose=z(3), leye_pose=z(3), reye_pose=z(3),
+                        left_hand_pose=z(45), right_hand_pose=z(45), expression=z(n_exp))
         return out.joints[:, :24, :].detach().cpu().numpy()     # 0..21 body (wrists 20/21) + jaw/eyes
     return _fn
 
