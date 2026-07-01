@@ -156,8 +156,9 @@ def hand_dim_for(wrist_count: int) -> int:
 
 
 def wrist_count_of(h) -> int:
-    """#wrists encoded in a signal (accepts the array or just its last-dim size)."""
-    dim = h if isinstance(h, int) else np.asarray(h).shape[-1]
+    """#wrists encoded in a signal (accepts an int last-dim, or any array/tensor — device-agnostic:
+    read .shape directly so a CUDA torch tensor is never pulled to numpy)."""
+    dim = h if isinstance(h, int) else h.shape[-1]
     return dim // HAND12_DIM
 
 
