@@ -7,15 +7,20 @@
     </marker>
   </defs>
 
-  <!-- train.pkl (data) -->
-  <rect x="24" y="100" width="140" height="64" rx="11" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
-  <text x="94" y="128" text-anchor="middle" font-size="13.5" font-weight="600" fill="#0f172a">train.pkl</text>
-  <text x="94" y="146" text-anchor="middle" font-size="10" fill="#64748b">7753 seqs · 4.1M frames</text>
+  <!-- data sources: 1-wrist (table tennis) + 2-wrist (ARCTIC) -->
+  <rect x="24" y="98" width="150" height="50" rx="10" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+  <text x="99" y="117" text-anchor="middle" font-size="13" font-weight="600" fill="#0f172a">TT mocap · 1 wrist</text>
+  <text x="99" y="133" text-anchor="middle" font-size="9.5" fill="#64748b">7753 seqs · 12D</text>
+
+  <rect x="24" y="156" width="150" height="50" rx="10" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+  <text x="99" y="175" text-anchor="middle" font-size="13" font-weight="600" fill="#0f172a">ARCTIC · 2 wrists</text>
+  <text x="99" y="191" text-anchor="middle" font-size="9.5" fill="#64748b">301 seqs · 24D</text>
 
   <!-- FK extract -->
   <rect x="196" y="100" width="120" height="64" rx="11" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.6"/>
-  <text x="256" y="128" text-anchor="middle" font-size="13.5" font-weight="600" fill="#0f172a">FK extract</text>
-  <text x="256" y="146" text-anchor="middle" font-size="10" fill="#64748b">12D + body · calib rest</text>
+  <text x="256" y="126" text-anchor="middle" font-size="13.5" font-weight="600" fill="#0f172a">FK extract</text>
+  <text x="256" y="143" text-anchor="middle" font-size="10" fill="#64748b">12D / 24D + body</text>
+  <text x="256" y="156" text-anchor="middle" font-size="9" fill="#94a3b8">calib rest</text>
 
   <!-- pairs cache (data) -->
   <rect x="348" y="100" width="120" height="64" rx="11" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
@@ -37,7 +42,8 @@
   <text x="874" y="137" text-anchor="middle" font-size="13.5" font-weight="600" fill="#065f46">checkpoint</text>
 
   <!-- main arrows -->
-  <line x1="164" y1="132" x2="194" y2="132" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah3)"/>
+  <line x1="174" y1="123" x2="194" y2="127" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah3)"/>
+  <line x1="174" y1="181" x2="194" y2="157" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah3)"/>
   <line x1="316" y1="132" x2="346" y2="132" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah3)"/>
   <line x1="468" y1="132" x2="498" y2="132" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah3)"/>
   <line x1="620" y1="132" x2="650" y2="132" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah3)"/>

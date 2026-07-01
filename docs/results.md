@@ -5,7 +5,7 @@ Two instantiations of the same causal model: **1 wrist (12D)** on table tennis, 
 
 ## 1 wrist (12D) — table tennis
 
-Data: `train.pkl` — 7753 BABEL ball-conditioned SMPL
+Data: the table-tennis motion set — 7753 BABEL ball-conditioned SMPL
 sequences (~4.14 M frames, 22-joint poses + real 3D joints), world frame = table URDF (z-up).
 The left-wrist 12D is FK-derived; the FK rest skeleton is calibrated from the real `joints`.
 
@@ -68,7 +68,7 @@ python scripts/train.py --arctic <arctic_raw_seqs> --smplx-models <smplx_dir> --
 
 ```bash
 # 1) one-time cache (2.5 GB pkl -> 2.3 GB fast npz; also prints act_cat distribution)
-python scripts/cache_pairs.py --pkl train.pkl --out data/cache/pairs_full.npz
+python scripts/cache_pairs.py --pkl motions.pkl --out data/cache/pairs_full.npz
 
 # 2) train (loads cache in seconds)
 python scripts/train.py --cache data/cache/pairs_full.npz --val-frac 0.1 \

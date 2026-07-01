@@ -7,15 +7,19 @@
     </marker>
   </defs>
 
-  <!-- Stage 1: upstream -->
-  <rect x="40" y="120" width="156" height="68" rx="11" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
-  <text x="118" y="150" text-anchor="middle" font-size="14.5" font-weight="600" fill="#0f172a">Hand generator</text>
-  <text x="118" y="170" text-anchor="middle" font-size="11.5" fill="#64748b">table-tennis</text>
+  <!-- Stage 1: two sparse-tracking sources -->
+  <rect x="40" y="104" width="172" height="46" rx="10" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+  <text x="126" y="123" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0f172a">Paddle hand · 1 wrist</text>
+  <text x="126" y="139" text-anchor="middle" font-size="10.5" fill="#64748b">table tennis · 12D</text>
+
+  <rect x="40" y="158" width="172" height="46" rx="10" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+  <text x="126" y="177" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0f172a">Bimanual · 2 wrists</text>
+  <text x="126" y="193" text-anchor="middle" font-size="10.5" fill="#64748b">manipulation · 24D</text>
 
   <!-- Stage 2: this repo -->
   <rect x="246" y="116" width="206" height="76" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"/>
   <text x="349" y="148" text-anchor="middle" font-size="15.5" font-weight="700" fill="#1d4ed8">Hand2Body</text>
-  <text x="349" y="168" text-anchor="middle" font-size="11.5" fill="#475569">12D → whole-body SMPL</text>
+  <text x="349" y="168" text-anchor="middle" font-size="11.5" fill="#475569">12D / 24D → whole-body SMPL</text>
   <text x="349" y="183" text-anchor="middle" font-size="10.5" fill="#64748b">causal diffusion model</text>
 
   <!-- Stage 3: downstream -->
@@ -32,8 +36,10 @@
   <text x="896" y="170" text-anchor="middle" font-size="11.5" fill="#047857">29-DoF humanoid</text>
 
   <!-- flow arrows -->
-  <line x1="196" y1="154" x2="244" y2="154" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah)"/>
-  <text x="220" y="146" text-anchor="middle" font-size="10.5" fill="#64748b">12D</text>
+  <line x1="212" y1="127" x2="244" y2="141" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="226" y="121" text-anchor="middle" font-size="10" fill="#64748b">12D</text>
+  <line x1="212" y1="181" x2="244" y2="167" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="226" y="199" text-anchor="middle" font-size="10" fill="#64748b">24D</text>
   <line x1="452" y1="154" x2="500" y2="154" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah)"/>
   <text x="476" y="146" text-anchor="middle" font-size="10.5" fill="#64748b">SMPL-X</text>
   <line x1="622" y1="154" x2="660" y2="154" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah)"/>
@@ -43,11 +49,11 @@
 
   <!-- legend -->
   <rect x="40" y="232" width="13" height="13" rx="3" fill="#fff7ed" stroke="#fb923c" stroke-width="1.4"/>
-  <text x="60" y="243" font-size="12" fill="#475569">Upstream generator</text>
+  <text x="60" y="243" font-size="12" fill="#475569">Upstream tracking</text>
   <rect x="232" y="232" width="13" height="13" rx="3" fill="#eff6ff" stroke="#2563eb" stroke-width="1.6"/>
   <text x="252" y="243" font-size="12" fill="#475569">Hand2Body (this repo)</text>
   <rect x="470" y="232" width="13" height="13" rx="3" fill="#ecfdf5" stroke="#10b981" stroke-width="1.4"/>
   <text x="490" y="243" font-size="12" fill="#475569">Retarget + track (robot)</text>
 
-  <text x="40" y="276" font-size="12" fill="#94a3b8">30 Hz · world frame at table center  ·  validated: 20.7 mm held-out MPJPE, wrist ~8 mm / &lt;1°</text>
+  <text x="40" y="276" font-size="12" fill="#94a3b8">30 Hz · world frame (TT)  ·  held-out: 1-wrist 20.7 mm MPJPE (8 mm wrist) · 2-wrist 63 mm (14 mm / 2.1°)</text>
 </svg>

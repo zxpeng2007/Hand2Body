@@ -7,11 +7,16 @@
     </marker>
   </defs>
 
-  <!-- input -->
-  <rect x="34" y="100" width="172" height="80" rx="12" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.6"/>
-  <text x="120" y="128" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">12D hand signal</text>
-  <text x="120" y="147" text-anchor="middle" font-size="11" fill="#64748b">pos · velocity · 6D rot</text>
-  <text x="120" y="163" text-anchor="middle" font-size="10.5" fill="#94a3b8">world frame · global</text>
+  <!-- inputs: 1 or 2 wrists -->
+  <rect x="34" y="96" width="176" height="44" rx="11" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.6"/>
+  <text x="122" y="115" text-anchor="middle" font-size="13" font-weight="600" fill="#0f172a">1 wrist · 12D</text>
+  <text x="122" y="131" text-anchor="middle" font-size="10" fill="#64748b">pos · velocity · 6D rot</text>
+
+  <rect x="34" y="148" width="176" height="44" rx="11" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.6"/>
+  <text x="122" y="167" text-anchor="middle" font-size="13" font-weight="600" fill="#0f172a">2 wrists · 24D</text>
+  <text x="122" y="183" text-anchor="middle" font-size="10" fill="#64748b">[ left12 | right12 ]</text>
+
+  <text x="122" y="206" text-anchor="middle" font-size="9.5" fill="#94a3b8">world frame · global</text>
 
   <!-- model core (accent) -->
   <rect x="238" y="96" width="214" height="88" rx="13" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"/>
@@ -36,7 +41,8 @@
   <text x="908" y="154" text-anchor="middle" font-size="10.5" fill="#047857">.npz · SMPL-X</text>
 
   <!-- flow arrows -->
-  <line x1="206" y1="140" x2="236" y2="140" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah2)"/>
+  <line x1="210" y1="118" x2="236" y2="128" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah2)"/>
+  <line x1="210" y1="170" x2="236" y2="152" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah2)"/>
   <line x1="452" y1="140" x2="482" y2="140" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah2)"/>
   <line x1="642" y1="140" x2="672" y2="140" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah2)"/>
   <line x1="814" y1="140" x2="844" y2="140" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ah2)"/>

@@ -60,13 +60,13 @@ m.load_state_dict(torch.load("checkpoints/arctic_bimanual_30k.pt", map_location=
 ## Quickstart
 
 The 6D convention is Zhou-2019 columns (`frames.PROJECT_R6D`); the models map
-`hand[1..L] → body[1..L]` causally. `train.pkl` is a joblib pickle of SMPL 22-joint
+`hand[1..L] → body[1..L]` causally. The table-tennis motion set is a joblib pickle of SMPL 22-joint
 `poses [T,66]` + `trans`. Measured results: [results.md](docs/results.md). Run the suite with `pytest`.
 
 ```bash
 python scripts/train.py --synthetic                                          # smoke-test the loop, no data
 # 1 wrist (table tennis) — FK-extracts the 12D from whole-body SMPL:
-python scripts/train.py --pkl train.pkl --arch diffusion --steps 30000
+python scripts/train.py --pkl motions.pkl --arch diffusion --steps 30000
 # 2 wrists (bimanual manipulation) — FK-extracts the 24D from ARCTIC SMPL-X:
 python scripts/train.py --arctic <arctic_raw_seqs> --smplx-models <smplx_dir> --wrist-count 2 --arch diffusion --steps 30000
 python scripts/generate.py --arch diffusion --checkpoint checkpoints/diffusion_full.pt --hand H.npy --out out.npz
@@ -97,7 +97,7 @@ configs/            default.yaml
 docs/               CONTRACT.md (data contract) · stage3_runbook.md (GMR→HoloMotion) · results.md · img/
 h2b/
   representations/  rotations, frames (world/SMPL/N-wrist 12D·24D), body (135-D), rotations_torch
-  data/             smpl_fk (SMPL→12D/24D), pkl_loader (train.pkl), arctic_loader (ARCTIC SMPL-X),
+  data/             smpl_fk (SMPL→12D/24D), pkl_loader (table-tennis SMPL), arctic_loader (ARCTIC SMPL-X),
                     cache, dataset
   models/           diffusion (DiT denoiser, hand_dim=12·24), regressor, fk_torch, streaming
   losses.py · inference.py · training.py · eval.py
