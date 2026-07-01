@@ -6,11 +6,20 @@ For the two-wrist v1 we use only the SMPL-X BODY: joints 0..21 are the SAME kine
 like `pkl_loader` does for train.pkl. Hands/fingers and objects are ignored (rigid-wrist body model);
 they are available for a later object-conditioning / grasp phase.
 
-ARCTIC per-sequence SMPL-X params live in `arctic_data/data/raw_seqs/<sid>/<obj>_<action>.smplx.npy`
-(np.load(..., allow_pickle=True).item() -> dict of (T,·) arrays). Key names vary across releases, so
-we normalize {global_orient|root_orient, body_pose|pose_body, transl|trans, betas}. Body-joint
-POSITIONS (for the wrist signal + rest calibration) come from a `joints_fn` — the real SMPL-X model
-by default (accurate), or an injected stub for tests.
+VERIFIED against github.com/zc-alexfan/arctic (docs/data/data_doc.md, 2026-07-01):
+  * layout: `arctic_data/data/raw_seqs/s01..s10/<obj>_<action>_NN.smplx.npy`
+    (np.load(..., allow_pickle=True).item() -> dict). We glob `raw_seqs/**/*.smplx.npy`.
+  * keys/shapes: `transl (T,3)`, `global_orient (T,3)`, `body_pose (T,63)`, plus jaw/eye/hand poses
+    we ignore. All axis-angle, WORLD coordinate, meters. (We also accept root_orient/pose_body/trans.)
+  * betas are NOT in the file — per-subject shape is a personalized v-template in
+    `meta/subject_vtemplates` (+ gender in `meta/misc.json`). We default betas=0 (mean shape): the
+    FK-derived signal stays self-consistent (rest is calibrated from the SAME FK), so v1 trains fine;
+    pass a v-template/real gender later for exact subject anthropometry.
+  * fps: not stated in the doc — default 30 (the image-aligned ARCTIC rate). If a release ships
+    raw_seqs at a different rate, set `fps` (velocity is m/s) AND resample to 30 fps so the streaming
+    window/block semantics match our pipeline.
+Body-joint POSITIONS (for the wrist signal + rest calibration) come from a `joints_fn` — the real
+SMPL-X model by default (accurate), or an injected stub for tests.
 """
 
 from __future__ import annotations
