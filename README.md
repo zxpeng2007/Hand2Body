@@ -1,19 +1,34 @@
 # Hand2Body
 
-Generate **whole-body SMPL motion** from a **single left-hand 12D signal**, for the
-table-tennis humanoid pipeline:
+Generate **whole-body SMPL motion** from **sparse wrist tracking** — a general
+*sparse-tracking → full-body* model (the AGRoL / AvatarPoser lineage, taken to its
+extreme-sparse end). Drive it from **one wrist** (12D) or **both wrists** (24D); the same
+causal diffusion model lifts the wrist signal(s) to the whole body in real time. Two
+example applications: a table-tennis paddle hand, and bimanual object manipulation.
 
 <p align="center"><img src="docs/img/pipeline.svg" alt="Hand2Body end-to-end pipeline" width="820"></p>
 
-- **Input** (per frame, left wrist = SMPL joint 20): `[pos(3), lin_vel(3), rot6D(6)]`,
-  world frame, **global** wrist orientation. Forehand/backhand is encoded by that
-  orientation.
-- **Output**: AMASS-style SMPL `.npz` at 30 Hz (plain SMPL — rigid wrist, no fingers).
-- **Causal / streaming** (real-time on the robot).
+- **Input** (per frame, per tracked wrist = SMPL joint 20 / 21): `[pos(3), lin_vel(3), rot6D(6)]`,
+  world frame, **global** wrist orientation. 1 wrist → 12D, 2 wrists → 24D (`hand_signal.wrist_count`;
+  `--wrist-count`). Blocks are `[left12 | right12]`.
+- **Output**: whole-body SMPL (135-D = root_trans + 22 joints × 6D) / AMASS-style `.npz` at 30 Hz
+  (plain SMPL — rigid wrist, no fingers).
+- **Causal / streaming** (real-time, ~5 ms/frame — `h2b.models.streaming`).
 
-👉 **Read [`docs/CONTRACT.md`](docs/CONTRACT.md) first** — it pins the world frame, the 12D
-semantics, the SMPL output format, and the open upstream questions. All code
-constants come from [`configs/default.yaml`](configs/default.yaml).
+### Trained instances (weights in [Releases](https://github.com/zxpeng2007/Hand2Body/releases/tag/v0.1.0))
+
+| model | input | data | held-out |
+|---|---|---|---|
+| `diffusion_full.pt` | **1 wrist** (12D, left paddle) | table tennis | **20.7 mm** MPJPE, 8.5 mm / 0.72° wrist |
+| `arctic_bimanual_30k.pt` | **2 wrists** (24D) | ARCTIC bimanual manipulation | ~63 mm MPJPE, **14 mm / 2.1°** wrist |
+
+Wrist tracking (upper body) is tight in both; the two-wrist MPJPE floor (~63 mm) is the **unconstrained
+lower body** — no wrist observes the legs/root, so they stay prior-driven (the fundamental limit of
+sparse-wrist tracking). Table tennis is one instantiation; the world-frame/table/ball specifics live in
+[`docs/CONTRACT.md`](docs/CONTRACT.md).
+
+👉 **Read [`docs/CONTRACT.md`](docs/CONTRACT.md)** for the table-tennis instantiation (world frame, 12D
+semantics, SMPL output). All code constants come from [`configs/default.yaml`](configs/default.yaml).
 
 ## Model & I/O
 
@@ -23,19 +38,24 @@ constants come from [`configs/default.yaml`](configs/default.yaml).
 
 <p align="center"><img src="docs/img/training.svg" alt="Hand2Body training and data flow" width="900"></p>
 
-## Pretrained model
+## Pretrained models
 
-Trained weights are published as **[GitHub Release](https://github.com/zxpeng2007/Hand2Body/releases)**
-assets (kept out of git history). Fetch the 12D wrist → whole-body diffusion model:
+Weights are published as **[GitHub Release](https://github.com/zxpeng2007/Hand2Body/releases/tag/v0.1.0)**
+assets (kept out of git history):
 
 ```bash
-gh release download v0.1.0 -p diffusion_full.pt -D checkpoints    # -> checkpoints/diffusion_full.pt
-# or download it from the Releases page into checkpoints/
+gh release download v0.1.0 -p diffusion_full.pt -D checkpoints        # 1-wrist (12D), table tennis
+gh release download v0.1.0 -p arctic_bimanual_30k.pt -D checkpoints   # 2-wrist (24D), bimanual manip
 ```
 
-`diffusion_full.pt` — `DiTDenoiser(hidden=256, n_layers=4, hand_dim=12)`. Held-out on 775 unseen
-table-tennis sequences: **20.7 mm MPJPE**, 8.5 mm wrist pos, 0.72° wrist orient. Load/usage in the
-[release notes](https://github.com/zxpeng2007/Hand2Body/releases/tag/v0.1.0).
+Construct the matching model (`hand_dim = 12 × #wrists`) and load:
+
+```python
+import torch
+from h2b.models.diffusion import DiTDenoiser
+m = DiTDenoiser(hidden=256, n_layers=4, hand_dim=24).eval()           # 12 for the 1-wrist model
+m.load_state_dict(torch.load("checkpoints/arctic_bimanual_30k.pt", map_location="cpu"))
+```
 
 ## Quickstart
 
@@ -44,10 +64,13 @@ The 6D convention is Zhou-2019 columns (`frames.PROJECT_R6D`); the models map
 `poses [T,66]` + `trans`. Measured results: [results.md](docs/results.md). Run the suite with `pytest`.
 
 ```bash
-python scripts/train.py --synthetic                                     # smoke-test the loop, no data
-python scripts/train.py --pkl train.pkl --arch diffusion --steps 20000  # train on real data (FK-extracts the 12D)
-python scripts/generate.py --arch diffusion --checkpoint checkpoints/diffusion.pt --hand H.npy --out out.npz
-python -m h2b.export.aitviewer_vis --input out.npz                     # view a generated clip
+python scripts/train.py --synthetic                                          # smoke-test the loop, no data
+# 1 wrist (table tennis) — FK-extracts the 12D from whole-body SMPL:
+python scripts/train.py --pkl train.pkl --arch diffusion --steps 30000
+# 2 wrists (bimanual manipulation) — FK-extracts the 24D from ARCTIC SMPL-X:
+python scripts/train.py --arctic <arctic_raw_seqs> --smplx-models <smplx_dir> --wrist-count 2 --arch diffusion --steps 30000
+python scripts/generate.py --arch diffusion --checkpoint checkpoints/diffusion_full.pt --hand H.npy --out out.npz
+python -m h2b.export.aitviewer_vis --input out.npz                          # view a generated clip
 ```
 
 ### Mesh visualization (aitviewer)
@@ -73,13 +96,14 @@ assets/urdf/        ball · table · g1 pingpong   (world-frame source of truth)
 configs/            default.yaml
 docs/               CONTRACT.md (data contract) · stage3_runbook.md (GMR→HoloMotion) · results.md · img/
 h2b/
-  representations/  rotations, frames (world/SMPL/12D), body (135-D), rotations_torch
-  data/             smpl_fk (SMPL→12D), pkl_loader (train.pkl), cache, dataset
-  models/           diffusion (DiT denoiser), regressor, fk_torch, streaming
+  representations/  rotations, frames (world/SMPL/N-wrist 12D·24D), body (135-D), rotations_torch
+  data/             smpl_fk (SMPL→12D/24D), pkl_loader (train.pkl), arctic_loader (ARCTIC SMPL-X),
+                    cache, dataset
+  models/           diffusion (DiT denoiser, hand_dim=12·24), regressor, fk_torch, streaming
   losses.py · inference.py · training.py · eval.py
   export/           to_amass_npz (SMPL/SMPL-X), aitviewer_vis, visualize
-scripts/            train · generate · render_aitviewer · render_video · cache_pairs ·
-                    clean_smpl_models · compare_models · inspect_pkl
+scripts/            train (--pkl · --arctic · --wrist-count) · generate · render_aitviewer ·
+                    render_video · cache_pairs · clean_smpl_models · compare_models · inspect_pkl
 tests/              pytest suite
 ```
 

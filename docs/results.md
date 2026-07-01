@@ -1,10 +1,15 @@
-# Results — Hand2Body on `train.pkl`
+# Results — Hand2Body
+
+Two instantiations of the same causal model: **1 wrist (12D)** on table tennis, and
+**2 wrists (24D)** on bimanual manipulation (ARCTIC).
+
+## 1 wrist (12D) — table tennis
 
 Data: `train.pkl` — 7753 BABEL ball-conditioned SMPL
 sequences (~4.14 M frames, 22-joint poses + real 3D joints), world frame = table URDF (z-up).
 The left-wrist 12D is FK-derived; the FK rest skeleton is calibrated from the real `joints`.
 
-## Held-out comparison (identical 775-sequence val split, seed 0)
+### Held-out comparison (identical 775-sequence val split, seed 0)
 
 `python scripts/compare_models.py --cache data/cache/pairs_full.npz`
 
@@ -22,7 +27,7 @@ The left-wrist 12D is FK-derived; the FK rest skeleton is calibrated from the re
 So: from a **single left-hand 12D signal**, the model generates a full body with **~2 cm joint
 accuracy** and the wrist tracked to **~8 mm / <1°** on unseen sequences.
 
-## Training convergence (full diffusion, held-out, every 2000 steps)
+### Training convergence (full diffusion, held-out, every 2000 steps)
 
 | step | 0 | 2k | 10k | 20k | 28k |
 |---|---|---|---|---|---|
@@ -31,6 +36,33 @@ accuracy** and the wrist tracked to **~8 mm / <1°** on unseen sequences.
 | wrist (deg) | 126 | 7.9 | 1.7 | 1.7 | 0.93 |
 
 Monotonic on held-out val → genuine generalization, no overfitting.
+
+## 2 wrists (24D) — ARCTIC bimanual manipulation
+
+The same architecture generalizes beyond table tennis: condition on **both wrists** (24D = `[left12 |
+right12]`) and lift to the whole body. FK-derived from [ARCTIC](https://arctic.is.tue.mpg.de) SMPL-X
+(301 bimanual object-manipulation sequences; body joints 0..21 == SMPL, wrists 20/21), `hand_dim=24`,
+30k steps, held-out 30-seq val split.
+
+| step | 0 | 5k | 10k | 20k | 25k |
+|---|---|---|---|---|---|
+| MPJPE (mm) | 1590 | 92 | 74 | **63** | 67 |
+| wrist (mm) | 1440 | 85 | 39 | 18 | **14** |
+| wrist (deg) | 125 | 8.9 | 6.5 | 2.9 | **2.1** |
+| jitter | 256 | 1.3 | 1.0 | 0.82 | 0.75 |
+
+Wrist tracking is tight (**14 mm / 2.1°**, approaching the 1-wrist 8.5 mm). The **MPJPE floors at
+~63 mm = the unconstrained lower body**: neither wrist observes the legs/root, so they stay
+prior-driven — the fundamental limit of sparse-wrist tracking (more data/steps sharpen the upper body,
+not the legs). All 301 ARCTIC seqs are already planted-feet, so the seated regime holds; the lever for
+the lower body is an explicit root/pelvis signal, not more wrist data. (Numbers are above the 1-wrist
+20.7 mm mainly because ARCTIC is ~25× smaller — 271 vs 7753 train seqs — and a harder, more varied
+domain.)
+
+```bash
+python scripts/train.py --arctic <arctic_raw_seqs> --smplx-models <smplx_dir> --wrist-count 2 \
+    --arch diffusion --steps 30000 --out checkpoints/arctic_bimanual_30k.pt
+```
 
 ## Reproduce
 

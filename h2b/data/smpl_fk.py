@@ -1,8 +1,9 @@
-"""Derive the 12D left-wrist signal from whole-body SMPL motion (training-pair extraction).
+"""Derive the sparse wrist signal (12D per wrist) from whole-body SMPL motion (training-pair extraction).
 
-This is the M1 milestone: with no paired (12D ↔ SMPL) table-tennis data in existence,
-we BUILD the input signal by forward kinematics from whole-body mocap (AMASS, or the
-upstream GVHMR-reconstructed table-tennis SMPL).
+With no paired (wrist ↔ SMPL) data in existence, we BUILD the input signal by forward
+kinematics from whole-body mocap — one wrist (12D, e.g. table-tennis paddle hand from
+GVHMR-reconstructed SMPL, or AMASS) or both wrists (24D, e.g. ARCTIC bimanual manipulation;
+see `extract_hand_bilateral`).
 
 Two layers, deliberately decoupled so the rotation math is testable WITHOUT smplx:
 

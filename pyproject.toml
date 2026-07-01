@@ -1,7 +1,7 @@
 [project]
 name = "hand2body"
-version = "0.0.1"
-description = "Generate whole-body SMPL motion from a single left-hand 12D signal (table-tennis humanoid pipeline)."
+version = "0.2.0"
+description = "Generate whole-body SMPL motion from sparse wrist tracking (1 or 2 wrists) — a general causal sparse-to-full-body model."
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
 dependencies = [
