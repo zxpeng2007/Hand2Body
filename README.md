@@ -103,7 +103,8 @@ h2b/
   losses.py · inference.py · training.py · eval.py
   export/           to_amass_npz (SMPL/SMPL-X), aitviewer_vis, visualize
 scripts/            train (--pkl · --arctic · --wrist-count) · generate · render_aitviewer ·
-                    render_video · cache_pairs · clean_smpl_models · compare_models · inspect_pkl
+                    render_video · cache_pairs · clean_smpl_models · compare_models · inspect_pkl ·
+                    shape_probe (generalization probe: synthetic wrist shapes → body)
 tests/              pytest suite
 ```
 

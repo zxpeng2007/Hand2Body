@@ -64,6 +64,36 @@ python scripts/train.py --arctic <arctic_raw_seqs> --smplx-models <smplx_dir> --
     --arch diffusion --steps 30000 --out checkpoints/arctic_bimanual_30k.pt
 ```
 
+## Generalization probe — synthetic wrist shapes
+
+`scripts/shape_probe.py` feeds both models wrist trajectories that exist nowhere in the data —
+a big Z, a circle, a figure-8, a high/low reach — placed inside the training workspace at
+in-distribution speeds (calibrated automatically from the pairs cache). Both models keep tracking,
+and each answers with its own domain prior:
+
+| model | wrist err (mean, worst shape) | root XY travel | ankles vs floor | behavior |
+|---|---|---|---|---|
+| 1-wrist (table tennis) | 22–41 mm | 2.1–2.8 m / clip | −1…+25 cm | invents TT *footwork*: steps while drawing |
+| 2-wrist (ARCTIC) | 35–57 mm | 0.15–0.5 m / clip | **−1.4…+6.9 cm** | stays *planted*: weight shifts + torso lean |
+
+(Held-out references: 8.5 mm / 14 mm — so ~3–4× looser on out-of-distribution shapes, but never lost.)
+
+**Anchor-height caveat (load-bearing).** Canonicalization (CONTRACT §5) pins positions to the
+first wrist frame, so absolute height is unobservable: the model reconstructs the floor as if that
+frame sat at the data-typical wrist height. A probe starting at the top of the Z floated the whole
+body by exactly `start_z − typical_z` (+16 cm), one starting low sank it (−12 cm). The probe
+therefore starts every trajectory with a 1 s lead-in from the workspace-center height — and a live
+generator should do the same (start streams from a rest pose at typical height), or an explicit
+floor/pelvis-height conditioning signal should be added.
+
+```bash
+python scripts/shape_probe.py --cache data/cache/pairs_full.npz \
+    --checkpoint checkpoints/diffusion_full.pt                               # 1-wrist
+python scripts/shape_probe.py --cache data/cache/arctic_bimanual.npz \
+    --checkpoint checkpoints/arctic_bimanual_30k.pt --wrist-count 2 \
+    --render --smpl-models <smpl_models_dir>                                 # 2-wrist + videos
+```
+
 ## Reproduce
 
 ```bash
