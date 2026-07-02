@@ -79,10 +79,13 @@ class DiffusionStreamer:
         return body                                            # (L, 135)
 
     def push_block(self, hand_block):
-        """Append a block of B world-frame 12D samples, DDIM-sample the window ONCE, and return
-        the newest min(B, buffered) body frames (B,135) world. One sample serves the whole block
-        -> ~B x lower per-frame cost. Returns None only if nothing is buffered."""
-        hb = np.asarray(hand_block, np.float32).reshape(-1, 12)
+        """Append a block of B world-frame hand samples (B, 12*N) — or a single frame (12*N,) —
+        DDIM-sample the window ONCE, and return the newest min(B, buffered) body frames (B,135)
+        world. One sample serves the whole block -> ~B x lower per-frame cost. Returns None only
+        if nothing is buffered."""
+        hb = np.asarray(hand_block, np.float32)
+        if hb.ndim == 1:
+            hb = hb[None]
         for h in hb:
             self._hand.append(h)
         if not self._hand:

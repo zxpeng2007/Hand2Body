@@ -67,11 +67,15 @@ def generate_long(model, hand12, chunk=250, overlap=50, **kw):
     return out
 
 
-def generate_stream(model, hand12, diffusion, window=16, block=4, sample_steps=2, device="cpu"):
+def generate_stream(model, hand12, diffusion, window=16, block=4, sample_steps=2, device=None):
     """Streaming/online generation via DiffusionStreamer: feed the hand in blocks of `block`,
     collect the emitted body frames. Causal + block-amortized -- this is the REAL-TIME path
-    (vs generate_long, which is offline single-shot/chunked). hand12 (T,12) world -> (T,135) world."""
+    (vs generate_long, which is offline single-shot/chunked; do NOT loop generate() over small
+    chunks -- every call re-anchors canonicalization at its own first frame and the seams glitch).
+    hand12 (T,12*N) world -> (T,135) world. `device` defaults to the model's own device."""
     from .models.streaming import DiffusionStreamer
+    if device is None:
+        device = next(model.parameters()).device
     hand12 = np.asarray(hand12, np.float32)
     st = DiffusionStreamer(model, diffusion, window=window, block=block,
                            sample_steps=sample_steps, device=device)

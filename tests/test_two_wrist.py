@@ -92,3 +92,27 @@ def test_train_diffusion_24d_smoke():
                                            hidden=64, n_layers=2, num_steps=100, hand_dim=24,
                                            log_every=10)
     assert np.isfinite(hist[-1]["total"])
+
+
+def test_streamer_block_24d():
+    # 24D online streaming: push_block must accept (B, 24) (it used to hard-reshape to 12 cols)
+    from h2b.models.diffusion import DiTDenoiser, GaussianDiffusion
+    from h2b.models.streaming import DiffusionStreamer
+    diff = GaussianDiffusion(num_steps=50)
+    m = DiTDenoiser(hidden=64, n_layers=2, hand_dim=24).eval()
+    s = DiffusionStreamer(m, diff, window=5, block=4, sample_steps=2)
+    out = s.push_block(np.zeros((4, 24), np.float32))
+    assert out.shape == (4, B.MOTION_DIM) and np.isfinite(out).all()
+    single = s.push_block(np.ones(24, np.float32))             # a single flat frame also works
+    assert single.shape == (1, B.MOTION_DIM)
+
+
+def test_generate_stream_infers_model_device():
+    # device=None must resolve to the model's own device instead of crashing on cpu/cuda mismatch
+    from h2b.models.diffusion import DiTDenoiser, GaussianDiffusion
+    from h2b import inference as INF
+    m = DiTDenoiser(hidden=64, n_layers=2, hand_dim=12).eval()
+    hand = np.zeros((8, 12), np.float32)
+    out = INF.generate_stream(m, hand, GaussianDiffusion(num_steps=50), window=5, block=4,
+                              sample_steps=2)
+    assert out.shape == (8, B.MOTION_DIM) and np.isfinite(out).all()

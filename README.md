@@ -92,6 +92,30 @@ python scripts/generate.py --arch diffusion --checkpoint checkpoints/diffusion_f
 python -m h2b.export.aitviewer_vis --input out.npz                          # view a generated clip
 ```
 
+### Realtime / streaming
+
+`scripts/generate.py` is the **offline** path. For online use, drive the sliding-window streamer —
+**do not loop `generate()` over small chunks**: every offline call re-anchors canonicalization at
+its own first frame, so the seams glitch hard (measured jitter 12.9 at 8-frame chunks vs 5.9
+streamed; a 40-frame chunk looks smooth but costs 1.3 s latency).
+
+```python
+import numpy as np, torch
+from h2b.models.diffusion import DiTDenoiser, GaussianDiffusion
+from h2b.models.streaming import DiffusionStreamer
+
+model = DiTDenoiser(hidden=256, n_layers=4, hand_dim=12).cuda().eval()
+model.load_state_dict(torch.load("checkpoints/diffusion_full.pt", map_location="cuda"))
+st = DiffusionStreamer(model, GaussianDiffusion(device="cuda"),
+                       window=16, block=4, sample_steps=2, device="cuda")   # the validated defaults
+for blk in hand.reshape(-1, 4, 12):          # hand: (T,12) world-frame, T % 4 == 0
+    body = st.push_block(blk)                # (4,135) world SMPL, ~1.6 ms/frame, 4-frame latency
+```
+
+Batch equivalent (same math, one call): `h2b.inference.generate_stream(model, hand, diffusion)`.
+Window 16 / block 4 / ddim 2 are the measured sweet spot — smaller windows go jerky at the block
+seams, longer ones re-introduce anchor drift (`h2b/models/streaming.py` docstring has the sweep).
+
 ### Mesh visualization (aitviewer)
 
 One-time setup for the SMPL body-mesh render: download the official SMPL models
