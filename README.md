@@ -27,24 +27,24 @@ lower body** — no wrist observes the legs/root, so they stay prior-driven (the
 sparse-wrist tracking). Table tennis is one instantiation; the world-frame/table/ball specifics live in
 [`docs/CONTRACT.md`](docs/CONTRACT.md).
 
-### See it move — generalization probe
+### See it move
 
-Synthetic wrist commands that exist nowhere in the training data (big Z, circle, figure-8,
-high/low reach), drawn inside each model's workspace by
-[`scripts/shape_probe.py`](scripts/shape_probe.py) `--render`. Red = commanded wrist
-(sphere + orientation gizmo + trail), cyan = generated wrist; in the bimanual clips the idle
-second hand is the blue/green ghost pair. Both models keep tracking; each answers with its own
-domain prior.
+**1 wrist, table tennis — ground truth vs our streaming pipeline.** The right body is generated
+**online** (block = 4 frames, ~5 ms/frame) from the 12D wrist signal alone; the left is the mocap
+ground truth. The ball is replayed from the rally data for context (not generated).
 
-**1 wrist, table-tennis model** — interprets unfamiliar wrist paths as a reason to *step* (footwork):
+<p align="center"><img src="docs/img/pingpong_12d.gif" alt="table tennis: ground-truth body vs streaming generation from the wrist signal, with ball" width="900"></p>
 
-<p align="center"><img src="docs/img/probe_tt_12d.gif" alt="1-wrist generalization probe: model tracks Z/circle/figure-8/reach with table-tennis footwork" width="720"></p>
-
-**2 wrists, ARCTIC bimanual model** — same shapes, *planted feet*: weight shifts and torso lean instead of steps:
+**2 wrists, bimanual (ARCTIC) — generalization probe.** Synthetic wrist commands that exist
+nowhere in the training data (big Z, circle, figure-8, high/low reach), drawn inside the model's
+workspace by [`scripts/shape_probe.py`](scripts/shape_probe.py) `--render`. Red = commanded wrist
+(sphere + orientation gizmo + trail), cyan = generated; the idle second hand is the blue/green
+ghost pair. The wrists keep tracking and the feet stay planted — weight shifts and torso lean
+instead of steps.
 
 <p align="center"><img src="docs/img/probe_arctic_24d.gif" alt="2-wrist generalization probe: planted feet, weight shifts" width="720"></p>
 
-Numbers and the (load-bearing) anchor-height caveat: [`docs/results.md`](docs/results.md).
+Probe numbers and the (load-bearing) anchor-height caveat: [`docs/results.md`](docs/results.md).
 
 👉 **Read [`docs/CONTRACT.md`](docs/CONTRACT.md)** for the table-tennis instantiation (world frame, 12D
 semantics, SMPL output). All code constants come from [`configs/default.yaml`](configs/default.yaml).
